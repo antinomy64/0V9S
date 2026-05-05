@@ -66,7 +66,7 @@ def train(model, train_dataloader, contrastive_loss, optimizer, scheduler=None, 
     img_ids = []
     for n_batch, batch in enumerate(tqdm(train_dataloader)):
         annotations = batch['annotation'].to(device, dtype=torch.float32)
-        images = batch['image'].to(device)
+        images = batch['image'].to(device, dtype=torch.float32)
         if 'text_argmax' in batch:
             text_argmax = batch['text_argmax'].to(device)
         else:
@@ -130,7 +130,7 @@ def validate(model, val_dataloader, contrastive_loss, verbose=False):
         else:
             text_argmax = None
 
-        images = batch['image'].to(device)
+        images = batch['image'].to(device, dtype=torch.float32)
         if 'self_attn_maps' in batch:
             self_attn_maps = batch['self_attn_maps'].to(device)
             cls = batch['dino_features'].to(device)

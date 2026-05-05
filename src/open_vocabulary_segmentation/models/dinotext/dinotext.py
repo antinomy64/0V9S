@@ -54,7 +54,9 @@ class DINOText(nn.Module):
         
         if 'dinov2' in model_name:
             self.model_family = 'facebookresearch/dinov2' if 'dinov2' in model_name else 'facebookresearch/dino:main'
-            self.model = torch.hub.load(self.model_family, model_name)                
+            self.model = torch.hub.load("/home/master/.cache/torch/hub/facebookresearch_dinov2_main",
+                                        model_name,
+                                        source="local",)              
             
         elif 'mae' in model_name or 'sam' in model_name or 'clip' in model_name or 'dino' in model_name:
             self.model = timm.create_model(

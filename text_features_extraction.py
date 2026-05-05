@@ -17,7 +17,7 @@ from src.hooks import get_all_out_tokens, feats
 
 def run_bert_extraction(model_name, ann_path, batch_size, out_path, extract_dense_out=False, extract_second_last_dense_out=False,
                           write_as_wds=False, num_shards=25, n_in_splits=4, in_batch_offset=0, out_offset=0):
-    device = 'cuda' if torch.cuda.is_available else 'cpu'
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     if 'bert' in model_name:
         model_type = 'bert'

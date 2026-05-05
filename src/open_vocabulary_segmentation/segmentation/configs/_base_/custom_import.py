@@ -4,6 +4,6 @@
 # ------------------------------------------------------------------------------
 
 custom_imports = dict(
-    imports=["segmentation.datasets.coco_object", "segmentation.datasets.pascal_voc"],
+    imports=["segmentation.datasets.coco_object", "segmentation.datasets.pascal_voc", "segmentation.datasets.pascalpart116_obj"],
     allow_failed_imports=False,
 )

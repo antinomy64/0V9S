@@ -22,7 +22,7 @@ import torch.multiprocessing as mp
 from torch.distributed.algorithms.ddp_comm_hooks.default_hooks import fp16_compress_hook
 from torch.distributed.distributed_c10d import _get_default_group
 import numpy as np
-from mmcv.parallel import MMDistributedDataParallel
+from mmcv.parallel import MMDistributedDataParallel, MMDataParallel
 from mmcv.runner import get_dist_info, init_dist, set_random_seed
 from mmcv.utils import collect_env, get_git_hash
 from mmseg.apis import multi_gpu_test
@@ -190,12 +190,13 @@ def train(cfg, args):
         # optimizer = build_optimizer(cfg.train, model)
         import torch.optim as optim
         optimizer = optim.Adam(model.parameters(), lr=cfg.train.base_lr) # TODO: Ripristinate
-        model = MMDistributedDataParallel(
-            model,
-            device_ids=[torch.cuda.current_device()],
-            broadcast_buffers=False,
-            find_unused_parameters=True,
-        )
+        if dist.get_world_size() > 1:
+            model = MMDistributedDataParallel(
+                model,
+                device_ids=[torch.cuda.current_device()],
+                broadcast_buffers=False,
+                find_unused_parameters=True,
+            )
 
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     logger.info(f"number of params: {n_parameters} ({n_parameters/1000/1000:.1f}M)")
@@ -451,9 +452,14 @@ def validate_seg(config, seg_config, data_loader, model):
     )
 
     if device == "cuda":
-        mmddp_model = MMDistributedDataParallel(
-            seg_model, device_ids=[torch.cuda.current_device()], broadcast_buffers=False
-        )
+        if dist.get_world_size() > 1:
+            mmddp_model = MMDistributedDataParallel(
+                seg_model, device_ids=[torch.cuda.current_device()], broadcast_buffers=False
+            )
+        else:
+            mmddp_model = MMDataParallel(
+                seg_model, device_ids=[torch.cuda.current_device()]
+            )
     else:
         mmddp_model = seg_model
     mmddp_model.eval()

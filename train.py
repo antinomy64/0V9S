@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 device = 'cuda'
 
-def train_and_eval(config_file, train_dataset, val_dataset, texts=None, images=None, model_type='cls', test_set=None, optimizer="adam", weight_decay=0.05, scheduler='linear', warmup=0, name_pedix='', save_head_activations=None):
+def train_and_eval(config_file, train_dataset, val_dataset, texts=None, images=None, model_type='cls', test_set=None, optimizer="adam", weight_decay=0.05, scheduler='linear', warmup=0, name_pedix='', save_head_activations=None, init_weights=''):
     set_seed(123)
     out_dir = 'weights'
     model_name = os.path.basename(config_file).split('.')[0]
@@ -38,6 +38,13 @@ def train_and_eval(config_file, train_dataset, val_dataset, texts=None, images=N
     
     model = ModelClass.from_config(config['model'])
     model.to(device)
+    if init_weights:
+        print(f"Loading init weights from {init_weights}")
+        ckpt = torch.load(init_weights, map_location='cpu')
+        ret = model.load_state_dict(ckpt, strict=False)
+        if ret is not None:
+            print("Missing keys:", getattr(ret, "missing_keys", []))
+            print("Unexpected keys:", getattr(ret, "unexpected_keys", []))
     print(model)
     
     model, train_losses, val_losses = do_train(model, train_dataset, val_dataset, config['train'], optimizer_name=optimizer, weight_decay=weight_decay, scheduler_name=scheduler, warmup=warmup, save_head_attivations=save_head_activations)
@@ -99,6 +106,7 @@ if __name__ == '__main__':
     parser.add_argument('--name_pedix', type=str, default='', help="Model name to append to name of the configuration for weights name")
     parser.add_argument('--save_head_activations', type=str, default=None, help="If setted the occurences of the head activation of the last epoch will be saved at that path")
     parser.add_argument('--warmup', type=int, default=0, help="Number of warmup epochs")
+    parser.add_argument('--init_weights', type=str, default='', help='Path to an existing projector checkpoint used to initialize finetuning')
     args = parser.parse_args()
     
     if args.use_wandb:
@@ -149,4 +157,5 @@ if __name__ == '__main__':
                    scheduler=args.scheduler,
                    warmup=args.warmup,
                    name_pedix=args.name_pedix,
-                   save_head_activations=args.save_head_activations)
+                   save_head_activations=args.save_head_activations,
+                   init_weights=args.init_weights,)

@@ -2,6 +2,7 @@ model:
   act: tanh # None, tanh, relu or sigmoid
   hidden_layer: True
   dino_embed_dim: 1024
+  clip_embed_dim: 768
 
 
 train:

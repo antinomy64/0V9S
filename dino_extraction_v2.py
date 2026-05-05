@@ -44,7 +44,7 @@ def run_dinov2_extraction(model_name, data_dir, ann_path, batch_size, resize_dim
                           write_as_wds=False, num_shards=25, n_in_splits=4, in_batch_offset=0, out_offset=0,
                           extract_cls=False, extract_avg_self_attn=False, extract_second_last_out=False,
                           extract_patch_tokens=False, extract_self_attn_maps=False, extract_disentangled_self_attn=False, blip_model_name=None):
-    device = 'cuda' if torch.cuda.is_available else 'cpu'
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     # global num_global_tokens, num_patch_tokens, num_tokens, embed_dim, num_attn_heads, scale, batch_size_
     
@@ -135,13 +135,13 @@ def run_dinov2_extraction(model_name, data_dir, ann_path, batch_size, resize_dim
         data = read_coco_format_wds(ann_path)
     else:
         # otherwise we treat the dataset as a COCO dataset
-        # if ann_path.endswith('.json'):
-        #     print("Loading the annotations JSON")
-        #     with open(ann_path, 'r') as f:
-        #         data = json.load(f)
-        # else:
-        print("Loading the annotations PTH")
-        data = torch.load(ann_path)
+        if ann_path.endswith('.json'):
+            print("Loading the annotations JSON")
+            with open(ann_path, 'r') as f:
+                data = json.load(f)
+        else:
+            print("Loading the annotations PTH")
+            data = torch.load(ann_path)
         
     if extract_second_last_out:
         model.blocks[-2].register_forward_hook(get_second_last_out)
@@ -166,28 +166,40 @@ def run_dinov2_extraction(model_name, data_dir, ann_path, batch_size, resize_dim
                 # saving space by eliminating the jpg
                 del data['images'][j]['jpg']
             else:
-                # COCO or Recap case
-                
-                # Recap
-                if 'http' in data['images'][j]['file_name']:
+                file_name = data['images'][j].get('file_name', '')
+                coco_url = data['images'][j].get('coco_url', '')
+
+                # 1) 通用本地路径：优先支持你现在的 PC59 meta
+                if file_name and os.path.exists(file_name):
+                    pil_img = Image.open(file_name)
+
+                # 2) 如果 file_name 是相对路径，也允许拼 data_dir
+                elif file_name and data_dir is not None and os.path.exists(os.path.join(data_dir, file_name)):
+                    pil_img = Image.open(os.path.join(data_dir, file_name))
+
+                # 3) http 网络图片
+                elif file_name and 'http' in file_name:
                     try:
-                        pil_img = Image.open(BytesIO(requests.get(data['images'][j]['file_name']).content))
-                    except Exception as e:
-                        pil_img = Image.new("RGB", (224, 224)) # genererate dummy image
+                        pil_img = Image.open(BytesIO(requests.get(file_name).content))
+                    except Exception:
+                        pil_img = Image.new("RGB", (224, 224))
                         failed_ids.append(j)
                         n_errors += 1
-                # COCO 2014
-                elif 'train' in data['images'][j]['file_name']:
-                    pil_img = Image.open(os.path.join(data_dir, f"train2014/{data['images'][j]['file_name']}"))
-                elif 'val' in data['images'][j]['file_name']:
-                    pil_img = Image.open(os.path.join(data_dir, f"val2014/{data['images'][j]['file_name']}"))
-                elif 'test' in data['images'][j]['file_name']:
-                    pil_img = Image.open(os.path.join(data_dir, f"test2014/{data['images'][j]['file_name']}"))
-                # COCO 2017
-                elif 'train' in data['images'][j]['coco_url']:
-                    pil_img = Image.open(os.path.join(data_dir, f"train2017/{data['images'][j]['file_name']}"))
-                elif 'val' in data['images'][j]['coco_url']:
-                    pil_img = Image.open(os.path.join(data_dir, f"val2017/{data['images'][j]['file_name']}"))
+
+                # 4) COCO 2014
+                elif file_name and 'train' in file_name:
+                    pil_img = Image.open(os.path.join(data_dir, f"train2014/{file_name}"))
+                elif file_name and 'val' in file_name:
+                    pil_img = Image.open(os.path.join(data_dir, f"val2014/{file_name}"))
+                elif file_name and 'test' in file_name:
+                    pil_img = Image.open(os.path.join(data_dir, f"test2014/{file_name}"))
+
+                # 5) COCO 2017
+                elif coco_url and 'train' in coco_url:
+                    pil_img = Image.open(os.path.join(data_dir, f"train2017/{file_name}"))
+                elif coco_url and 'val' in coco_url:
+                    pil_img = Image.open(os.path.join(data_dir, f"val2017/{file_name}"))
+
                 else:
                     pil_img = Image.new("RGB", (224, 224)) # genererate dummy image
                     failed_ids.append(j)
@@ -203,7 +215,7 @@ def run_dinov2_extraction(model_name, data_dir, ann_path, batch_size, resize_dim
         with torch.no_grad():
             if 'dinov2' in model_name:
                 outs = model(batch_imgs, is_training=True)
-            if 'dinov3' in model_name:
+            elif 'dinov3' in model_name:
                 output = model.forward_features(batch_imgs)
                 # reporting output in DINOv2 format
                 outs = {

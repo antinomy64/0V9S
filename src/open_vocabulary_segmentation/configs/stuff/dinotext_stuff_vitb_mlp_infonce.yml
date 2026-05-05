@@ -6,7 +6,7 @@ model:
   model_name: dinov2_vitb14_reg
   proj_class: vitb_mlp_infonce
   proj_model: ProjectionLayer
-  proj_name: vitb_mlp_infonce
+  proj_name: vitb_mlp_infonce_coco2014_test
   resize_dim: 448
   type: DINOText
   use_avg_text_token: false

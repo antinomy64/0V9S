@@ -1,0 +1,7 @@
+data
+feature
+weights
+anchor_point_pesudo_obj
+anchor_point_pesudo_part
+anchor_point_pesudo_joint
+anchor_part_heatmaps_test7
