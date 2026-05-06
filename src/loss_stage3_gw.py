@@ -231,7 +231,9 @@ def build_class_part_blocks_from_dataset(dataset, device: torch.device) -> List[
     if not hasattr(dataset, "data"):
         raise AttributeError("Expected dataset to have .data. This helper is for pth-backed DinoClipJointDataset.")
 
-    for sample in dataset.data:
+    data_iter = dataset.data.values() if isinstance(dataset.data, dict) else dataset.data
+
+    for sample in data_iter:
         category_id = int(sample["category_id"])
         if category_id in blocks_by_cat:
             continue

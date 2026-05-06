@@ -239,9 +239,28 @@ def evaluate_object_miou_subprocess(
     }
 
 
+def _iter_dataset_samples(dataset):
+    """Yield sample dictionaries from DinoClipJointDataset.data.
+
+    In the current pth-backed dataset, dataset.data may be either:
+      - a list of sample dictionaries, or
+      - a dict mapping integer ids to sample dictionaries.
+
+    Iterating a dict directly yields keys, which caused:
+      TypeError: 'int' object is not subscriptable
+    """
+    if not hasattr(dataset, "data"):
+        raise AttributeError("Expected dataset to have .data")
+
+    data = dataset.data
+    if isinstance(data, dict):
+        return data.values()
+    return data
+
+
 def _infer_num_parts(train_dataset) -> int:
     max_pid = -1
-    for sample in train_dataset.data:
+    for sample in _iter_dataset_samples(train_dataset):
         pids = sample["part_category_id"]
         if torch.is_tensor(pids) and pids.numel() > 0:
             max_pid = max(max_pid, int(pids.max().item()))
@@ -328,7 +347,14 @@ def do_train_stage3_gw(
     )
 
     # Stage 2: build global visual prototypes in memory.
-    num_parts = int(train_cfg.get("num_parts", _infer_num_parts(train_dataset)))
+    # Do not use train_cfg.get("num_parts", _infer_num_parts(...)) here:
+    # Python evaluates the default argument eagerly, so _infer_num_parts would
+    # still run even when num_parts is present in the config.
+    num_parts_cfg = train_cfg.get("num_parts", None)
+    if num_parts_cfg is None:
+        num_parts = _infer_num_parts(train_dataset)
+    else:
+        num_parts = int(num_parts_cfg)
     print(f"[Stage2] Building visual prototypes in memory, num_parts={num_parts}")
     proto_pack = build_stage2_visual_prototypes(
         model=model,
