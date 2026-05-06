@@ -1,6 +1,10 @@
 data
 feature
 weights
+output
+output/eval
+configs
+segmentation_results
 anchor_point_pesudo_obj
 anchor_point_pesudo_part
 anchor_point_pesudo_joint

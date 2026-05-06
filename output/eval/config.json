@@ -92,7 +92,7 @@ model:
   model_name: dinov2_vitb14_reg
   proj_class: vitb_mlp_infonce
   proj_model: ProjectionLayer
-  proj_name: vitb_mlp_infonce_voc116_obj_with_part_test7_origobj_nospear
+  proj_name: vitb_mlp_infonce_voc116_obj_with_part_test8_4
   resize_dim: 448
   type: DINOText
   use_avg_text_token: false
