@@ -198,7 +198,12 @@ def train_stage3_gw_global(
             scheduler(step + prev_iter)
 
         do_structure_audit = audit_structure_every > 0 and (step % audit_structure_every == 0)
-        losses = criterion.global_forward(do_structure_audit=do_structure_audit)
+        do_anchor_audit=True
+        losses = criterion(
+            batch=None,
+            do_anchor_audit=do_anchor_audit,
+            do_structure_audit=do_structure_audit,
+        )
         total_loss = losses["total"]
 
         optimizer.zero_grad()

@@ -669,76 +669,50 @@ class Stage3GWLoss(nn.Module):
             "anchor_total_hits": post["anchor_total_hits"],
         }
 
-
-    def global_forward(
-        self,
-        do_structure_audit: bool = True,
-    ) -> Dict[str, torch.Tensor]:
-        device = self.visual_proto.device
-
-        obj_loss = torch.tensor(0.0, device=device)
-        gw_loss = self._gw_loss()
-        struct_loss = self._struct_loss()
-
-        total = self.lambda_gw * gw_loss + self.lambda_struct * struct_loss
-
-        zero = total.new_tensor(0.0)
-        nan = total.new_tensor(float("nan"))
-
-        out = {
-            "total": total,
-            "obj": obj_loss.detach(),
-            "gw": gw_loss.detach(),
-            "struct": struct_loss.detach(),
-            "inst": zero.detach(),
-            "overlap": zero.detach(),
-            "spear": zero.detach(),
-            "anchor_hit_rate": nan.detach(),
-            "anchor_total_valid_parts": zero.detach(),
-            "anchor_total_hits": zero.detach(),
-            "anchor_hit_rate_post": nan.detach(),
-            "anchor_total_valid_parts_post": zero.detach(),
-            "anchor_total_hits_post": zero.detach(),
-        }
-
-        if do_structure_audit:
-            out.update({k: v.detach() for k, v in self._structure_audit().items()})
-        else:
-            for key in [
-                "audit_spear_pre_text_vs_visual",
-                "audit_spear_post_text_vs_visual",
-                "audit_strret_pre_text_vs_visual",
-                "audit_strret_post_text_vs_visual",
-            ]:
-                out[key] = nan.detach()
-
-        return out
-
     def forward(
         self,
-        batch: Dict,
+        batch=None,
         do_anchor_audit: bool = False,
-        do_structure_audit: bool = True,
-    ) -> Dict[str, torch.Tensor]:
+        do_structure_audit: bool = False,
+    ):
+        device = self.visual_proto.device
+        zero = torch.tensor(0.0, device=device)
 
-        obj_feat = batch["obj_feat"]
-        obj_text_feat = batch["obj_text_feat"]
+        # 1. obj loss：只有 batch 存在且 lambda_obj > 0 才算
+        if batch is not None and self.lambda_obj > 0:
+            obj_feat = batch["obj_feat"]
+            obj_text_feat = batch["obj_text_feat"]
 
-        obj_loss = self.obj_criterion(
-            obj_feat,
-            obj_text_feat,
-            return_similarity_mat=False,
-            self_attn_maps=None,
-            cls=None,
-            text_input_mask=None,
-            text_argmax=None,
+            obj_loss = self.obj_criterion(
+                obj_feat,
+                obj_text_feat,
+                return_similarity_mat=False,
+                self_attn_maps=None,
+                cls=None,
+                text_input_mask=None,
+                text_argmax=None,
+            )
+        else:
+            obj_loss = zero
+
+        # 2. GW loss：全局 loss，不依赖 batch
+        if self.lambda_gw > 0:
+            gw_loss = self._gw_loss()
+        else:
+            gw_loss = zero
+
+        # 3. struct loss：全局结构保持 loss，不依赖 batch
+        if self.lambda_struct > 0:
+            struct_loss = self._struct_loss()
+        else:
+            struct_loss = zero
+
+        # 4. total
+        total = (
+            self.lambda_obj * obj_loss
+            + self.lambda_gw * gw_loss
+            + self.lambda_struct * struct_loss
         )
-        gw_loss = self._gw_loss()
-        struct_loss = self._struct_loss()
-
-        total = self.lambda_obj * obj_loss + self.lambda_gw * gw_loss + self.lambda_struct * struct_loss
-        zero = total.new_tensor(0.0)
-        nan = total.new_tensor(float("nan"))
 
         out = {
             "total": total,
@@ -748,26 +722,16 @@ class Stage3GWLoss(nn.Module):
             "inst": zero.detach(),
             "overlap": zero.detach(),
             "spear": zero.detach(),
-            "anchor_hit_rate": nan.detach(),
-            "anchor_total_valid_parts": zero.detach(),
-            "anchor_total_hits": zero.detach(),
-            "anchor_hit_rate_post": nan.detach(),
-            "anchor_total_valid_parts_post": zero.detach(),
-            "anchor_total_hits_post": zero.detach(),
         }
 
-        if do_structure_audit:
-            out.update({k: v.detach() for k, v in self._structure_audit().items()})
-        else:
-            for key in [
-                "audit_spear_pre_text_vs_visual",
-                "audit_spear_post_text_vs_visual",
-                "audit_strret_pre_text_vs_visual",
-                "audit_strret_post_text_vs_visual",
-            ]:
-                out[key] = nan.detach()
+        # 5. anchor audit：只有 batch 存在时才能算
+        if batch is not None and do_anchor_audit:
+            anchor_metrics = self._anchor_audit(batch)
+            out.update(anchor_metrics)
 
-        if do_anchor_audit:
-            out.update({k: v.detach() for k, v in self._anchor_audit(batch).items()})
+        # 6. structure audit：全局的，可以不依赖 batch
+        if do_structure_audit:
+            structure_metrics = self._structure_audit()
+            out.update(structure_metrics)
 
         return out
