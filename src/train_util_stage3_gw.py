@@ -402,10 +402,6 @@ def do_train_stage3_gw(
     miou_eval_script: Optional[str] = None,
     miou_eval_cfg: Optional[str] = None,
     miou_eval_base_cfg: Optional[str] = None,
-    miou_result_dir: str = "segmentation_results",
-    miou_result_json_name: Optional[str] = None,
-    miou_bench_key: Optional[str] = None,
-    miou_extra_opts: Optional[List[str]] = None,
 ):
     device = next(model.parameters()).device
     set_seed(seed)
@@ -414,10 +410,6 @@ def do_train_stage3_gw(
     num_epochs = train_cfg["num_epochs"]
     batch_size = train_cfg["batch_size"]
     shuffle = train_cfg.get("shuffle", True)
-
-    save_best_model = bool(train_cfg.get("save_best_model", True))
-    object_miou_max_drop = float(train_cfg.get("object_miou_max_drop", 2.0))
-    select_best_by_miou = bool(train_cfg.get("select_best_by_miou", True))
 
     obj_ltype = train_cfg.get("obj_ltype", train_cfg.get("ltype", "infonce"))
     obj_margin = train_cfg.get("margin", 0.2)
@@ -491,10 +483,9 @@ def do_train_stage3_gw(
         em_iters=em_iters,
         visual_source=stage2_visual_source,
     )
+
     visual_proto = proto_pack["visual_proto"]
     proto_count = proto_pack["proto_count"]
-    print("[Stage2] prototype counts:")
-    print(proto_count.detach().cpu().tolist())
 
     class_blocks = build_class_part_blocks_from_dataset(train_dataset, device=device)
 
@@ -538,13 +529,6 @@ def do_train_stage3_gw(
 
     train_history = []
     val_history = []
-    best_model = deepcopy(model)
-    best_val = None
-    best_obj_miou = None
-
-    baseline_obj_eval = {}
-    baseline_obj_miou = float("nan")
-    # print("[baseline object mIoU] skipped")
 
     for epoch in range(num_epochs):
         print(f"Epoch {epoch} / {num_epochs - 1}")
@@ -598,31 +582,4 @@ def do_train_stage3_gw(
             f"obj_eval_miou=skipped"
         )
 
-        current_obj_miou = float("nan")
-        obj_ok = True
-
-        if save_best_model:
-            if select_best_by_miou:
-                if obj_ok and (best_obj_miou is None or current_obj_miou > best_obj_miou):
-                    best_obj_miou = current_obj_miou
-                    best_val = val_metrics["total"]
-                    best_model = deepcopy(model)
-                    print("Best model updated by object mIoU under guardrail.")
-                elif not obj_ok:
-                    print(
-                        f"Skip best update because object mIoU dropped too much: "
-                        f"{current_obj_miou:.4f} < {baseline_obj_miou - object_miou_max_drop:.4f}"
-                    )
-            else:
-                if obj_ok and (best_val is None or val_metrics["total"] < best_val):
-                    best_val = val_metrics["total"]
-                    best_model = deepcopy(model)
-                    print("Best validation total loss under object mIoU guardrail, saving current best model in memory.")
-                elif not obj_ok:
-                    print(
-                        f"Skip best update because object mIoU dropped too much: "
-                        f"{current_obj_miou:.4f} < {baseline_obj_miou - object_miou_max_drop:.4f}"
-                    )
-
-    model = best_model if save_best_model else model
     return model, train_history, val_history

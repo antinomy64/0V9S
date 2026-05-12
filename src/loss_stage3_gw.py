@@ -67,19 +67,7 @@ def select_anchor_tokens_from_logits(
     obj_mask_patch: torch.Tensor,
     part_valid_mask: torch.Tensor,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    """
-    Select the exact single anchor patch token used by Stage-1 anchor/EM.
-
-    This mirrors JointObjPartLoss._anchor_proto_em_pool anchor selection:
-      1) restrict patches to the object mask;
-      2) compute relative part-vs-other scores;
-      3) greedily assign high-scoring unique patches to parts;
-      4) fallback to each part's best relative-score patch if unassigned.
-
-    Returns:
-        anchor_tokens: [B, K, D]
-        anchor_valid:  [B, K]
-    """
+    
     B, K, _ = abs_logits.shape
     D = patch_tokens.shape[-1]
     anchor_tokens = patch_tokens.new_zeros((B, K, D))
@@ -142,46 +130,12 @@ def extract_z_part_from_batch(
     anchor_helper: JointObjPartLoss | None = None,
     return_anchor_tokens: bool = False,
 ):
-    """
-    Extract pseudo part visual features z_part from one batch by directly reusing
-    the Stage-1 anchor/prototype routine:
-
-        JointObjPartLoss._anchor_proto_em_pool(...)
-
-    This is intentionally tied to src/loss_joint.py so Stage-2 prototype
-    extraction uses the exact same anchor selection and EM pooling logic as the
-    current Stage-1 joint training pipeline.
-
-    No real part GT masks are used. A dummy all-false part_gt_mask_patch is
-    passed only because _anchor_proto_em_pool also computes anchor audit metrics;
-    that mask does not affect anchor selection, EM assignment, or z_part.
-
-    Returns:
-        if return_anchor_tokens is False:
-            z_part: [B, K, D]
-        else:
-            z_part:        [B, K, D], EM/region pooled pseudo part features
-            anchor_tokens: [B, K, D], selected single anchor patch token per valid part
-            anchor_valid:  [B, K], whether an anchor token was found
-    """
     device = next(model.parameters()).device
 
     part_text_feat = batch["part_text_feat"].to(device).float()
     patch_tokens = batch["patch_tokens"].to(device).float()
     obj_mask_patch = batch["obj_mask_patch"].to(device).bool()
     part_valid_mask = batch["part_valid_mask"].to(device).bool()
-
-    if anchor_helper is None:
-        anchor_helper = JointObjPartLoss(
-            sim_model=model,
-            obj_ltype="infonce",
-            lambda_obj=0.0,
-            lambda_inst=0.0,
-            lambda_overlap=0.0,
-            lambda_spear=0.0,
-            patch_temperature=patch_temperature,
-            em_iters=em_iters,
-        ).to(device)
 
     part_proj = model.project_clip_txt(part_text_feat)  # [B, K, D]
     part_proj = anchor_helper._safe_normalize(part_proj, dim=-1)
@@ -199,23 +153,15 @@ def extract_z_part_from_batch(
         device=device,
     )
 
-    z_part, _, _ = anchor_helper._anchor_proto_em_pool(
+    z_part, proto_part, anchor_metrics, anchor_tokens, anchor_valid = anchor_helper._anchor_proto_em_pool(
         patch_tokens=patch_tokens,
         abs_logits=abs_logits,
         obj_mask_patch=obj_mask_patch,
         part_valid_mask=part_valid_mask,
         part_gt_mask_patch=dummy_part_gt_mask_patch,
         num_iters=em_iters,
+        return_anchor_tokens=True,
     )
-
-    if return_anchor_tokens:
-        anchor_tokens, anchor_valid = select_anchor_tokens_from_logits(
-            patch_tokens=patch_tokens,
-            abs_logits=abs_logits,
-            obj_mask_patch=obj_mask_patch,
-            part_valid_mask=part_valid_mask,
-        )
-        return z_part, anchor_tokens, anchor_valid
 
     return z_part
 
@@ -228,21 +174,6 @@ def build_stage2_visual_prototypes(
     em_iters: int = 1,
     visual_source: str = "zpart",
 ) -> Dict[str, torch.Tensor]:
-    """
-    Build global visual prototypes in memory.
-
-    This is intentionally the simple Stage 2 baseline requested:
-      - no top-k confidence filtering
-      - no per-part sample filtering
-      - visual_source="zpart": mean all pseudo z_part by part_category_id
-      - visual_source="anchor": mean all selected single anchor patch tokens by part_category_id
-
-    Returns:
-        {
-            "visual_proto": [num_parts, D], normalized,
-            "proto_count":  [num_parts], number of pseudo z_part used,
-        }
-    """
     device = next(model.parameters()).device
     model.eval()
 
