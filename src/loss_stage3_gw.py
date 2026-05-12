@@ -284,29 +284,48 @@ def gw_cost_matrix(C1: torch.Tensor, C2: torch.Tensor, T: torch.Tensor, p: torch
 def entropic_gw(
     C1: torch.Tensor,
     C2: torch.Tensor,
-    epsilon: float = 0.05,
+    epsilon: float = 0.01,
     max_iter: int = 20,
     sinkhorn_iter: int = 50,
+    init: str = "identity",
+    hard: bool = False,
 ) -> torch.Tensor:
     """
     Small entropic GW solver for per-object part blocks.
 
-    C1, C2: [K, K] distance matrices.
-    Returns a transport plan T: [K, K].
+    init:
+      - "uniform": original uniform transport initialization
+      - "identity": identity warm-start, used when source/target part order is expected to match
+    hard:
+      - False: return soft Sinkhorn transport
+      - True: return row-wise hard transport from the final soft plan
     """
     if C1.shape != C2.shape:
         raise ValueError(f"GW expects same-size blocks, got {C1.shape} and {C2.shape}")
 
     k = C1.shape[0]
     device = C1.device
+
     p = torch.full((k,), 1.0 / k, device=device)
     q = torch.full((k,), 1.0 / k, device=device)
-    T = p[:, None] * q[None, :]
+
+    if init == "identity":
+        T = torch.eye(k, device=device) / float(k)
+    elif init == "uniform":
+        T = p[:, None] * q[None, :]
+    else:
+        raise ValueError(f"Unknown GW init: {init}")
 
     for _ in range(max_iter):
         cost = gw_cost_matrix(C1, C2, T, p, q)
         cost = cost - cost.min()
         T = sinkhorn(p, q, cost, epsilon=epsilon, max_iter=sinkhorn_iter)
+
+    if hard:
+        idx = T.argmax(dim=1)
+        T_hard = torch.zeros_like(T)
+        T_hard[torch.arange(k, device=device), idx] = 1.0 / float(k)
+        T = T_hard
 
     return T.detach()
 
@@ -485,6 +504,8 @@ class Stage3GWLoss(nn.Module):
                 epsilon=self.gw_epsilon,
                 max_iter=self.gw_max_iter,
                 sinkhorn_iter=self.sinkhorn_iter,
+                init="identity",
+                hard=True,
             )
 
             self.gw_blocks.append(

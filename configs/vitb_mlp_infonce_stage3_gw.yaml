@@ -14,7 +14,7 @@ train:
 
   lambda_obj: 0.0
   lambda_gw: 1.0
-  lambda_struct: 0.05
+  lambda_struct: 1.0
 
   lambda_inst: 0.0
   lambda_overlap: 0.0
@@ -31,7 +31,7 @@ train:
   stage2_visual_source: anchor
 
   gw_only_steps_per_epoch: 1
-  gw_epsilon: 0.05
+  gw_epsilon: 0.005
   gw_max_iter: 20
   sinkhorn_iter: 50
 
