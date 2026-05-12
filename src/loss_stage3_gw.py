@@ -1,15 +1,23 @@
 """
-Stage 3 GW loss for Talk2DINO.
+Stage 3 hard-bijective GW structural loss for Talk2DINO.
 
-This version implements the intended Stage3 behavior:
-    - fixed V-side prototypes / anchor prototypes;
-    - dynamic GW assignment from current projected T to V;
-    - direct pairwise weighted alignment cost, not weighted visual targets;
-    - text-structure preservation so projector behaves like a near-rotation.
+Final Stage3 objective implemented here:
+
+    Z = projector(T)
+
+    L_gw     = hard-bijective GW structural loss between D(Z) and D(V)
+               The GW solver only chooses a hard permutation pi. The loss is
+                   mean_{i,k} (D(Z)[i,k] - D(V)[pi(i), pi(k)])^2
+
+    L_struct = structure preservation loss between projector input and output:
+                   MSE(D(Z), D(T))
+
+    L_total  = lambda_obj * L_obj + lambda_gw * L_gw + lambda_struct * L_struct
 """
+
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import torch
 import torch.nn as nn
@@ -24,13 +32,21 @@ def safe_normalize(x: torch.Tensor, dim: int = -1, eps: float = 1e-6) -> torch.T
 
 
 def compute_relative_scores(local_scores: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the same relative part-patch scores used by loss_joint.py.
+
+    local_scores: [K, M], scores for K parts over M object-internal patches.
+    relative_score(k, m) = score(k, m) - best_score(other_part, m)
+    """
     k, _ = local_scores.shape
     if k <= 1:
         return local_scores
+
     top2_vals, top2_idx = torch.topk(local_scores, k=min(2, k), dim=0)
     best_vals = top2_vals[0]
     best_idx = top2_idx[0]
     second_vals = top2_vals[1]
+
     row_ids = torch.arange(k, device=local_scores.device)[:, None]
     is_top1 = row_ids == best_idx[None, :]
     best_other = torch.where(is_top1, second_vals[None, :], best_vals[None, :])
@@ -46,7 +62,20 @@ def extract_z_part_from_batch(
     anchor_helper: JointObjPartLoss | None = None,
     return_anchor_tokens: bool = False,
 ):
+    """
+    Extract pseudo part visual features from one batch by reusing the exact
+    Stage-1 anchor/prototype routine.
+
+    When return_anchor_tokens=True, also return the selected single anchor patch
+    tokens and their validity mask.
+    """
     device = next(model.parameters()).device
+
+    part_text_feat = batch["part_text_feat"].to(device).float()
+    patch_tokens = batch["patch_tokens"].to(device).float()
+    obj_mask_patch = batch["obj_mask_patch"].to(device).bool()
+    part_valid_mask = batch["part_valid_mask"].to(device).bool()
+
     if anchor_helper is None:
         anchor_helper = JointObjPartLoss(
             sim_model=model,
@@ -60,16 +89,11 @@ def extract_z_part_from_batch(
         ).to(device)
         anchor_helper.eval()
 
-    part_text_feat = batch["part_text_feat"].to(device).float()
-    patch_tokens = batch["patch_tokens"].to(device).float()
-    obj_mask_patch = batch["obj_mask_patch"].to(device).bool()
-    part_valid_mask = batch["part_valid_mask"].to(device).bool()
-
-    part_proj = model.project_clip_txt(part_text_feat)
+    part_proj = model.project_clip_txt(part_text_feat)  # [B, K, D]
     part_proj = anchor_helper._safe_normalize(part_proj, dim=-1)
     patch_tokens = anchor_helper._safe_normalize(patch_tokens, dim=-1)
 
-    # Stage1-style part-to-patch logits, but candidate patches are restricted by object mask.
+    # Match Stage-1 JointObjPartLoss.forward exactly.
     abs_logits = torch.einsum("bkd,bnd->bkn", part_proj, patch_tokens) / float(patch_temperature)
     abs_logits = abs_logits.masked_fill(~obj_mask_patch[:, None, :], -1e4)
 
@@ -113,14 +137,23 @@ def build_stage2_visual_prototypes(
     em_iters: int = 1,
     visual_source: str = "zpart",
 ) -> Dict[str, torch.Tensor]:
+    """
+    Build global visual prototypes in memory.
+
+    visual_source:
+      - "zpart": mean Stage-1 z_part pseudo visual features by part_category_id
+      - "anchor": mean selected single anchor patch tokens by part_category_id
+    """
     device = next(model.parameters()).device
     model.eval()
+
     visual_source = str(visual_source).lower()
     if visual_source not in {"zpart", "anchor"}:
         raise ValueError(f"visual_source must be 'zpart' or 'anchor', got {visual_source}")
 
     proto_sum = None
     proto_count = torch.zeros(num_parts, device=device)
+
     anchor_helper = JointObjPartLoss(
         sim_model=model,
         obj_ltype="infonce",
@@ -140,7 +173,7 @@ def build_stage2_visual_prototypes(
         batch = moved
 
         if visual_source == "anchor":
-            z_part, anchor_tokens, anchor_valid = extract_z_part_from_batch(
+            _, anchor_tokens, anchor_valid = extract_z_part_from_batch(
                 model=model,
                 batch=batch,
                 patch_temperature=patch_temperature,
@@ -160,8 +193,8 @@ def build_stage2_visual_prototypes(
             anchor_valid = None
             feat_to_accumulate = z_part
 
-        part_ids = batch["part_category_id"].long()
-        part_valid = batch["part_valid_mask"].bool()
+        part_ids = batch["part_category_id"].long()       # [B, K]
+        part_valid = batch["part_valid_mask"].bool()      # [B, K]
         if anchor_valid is not None:
             part_valid = part_valid & anchor_valid.bool()
 
@@ -185,6 +218,7 @@ def build_stage2_visual_prototypes(
 
     visual_proto = proto_sum / proto_count.clamp_min(1.0)[:, None]
     visual_proto = safe_normalize(visual_proto, dim=-1)
+
     return {
         "visual_proto": visual_proto.detach(),
         "proto_count": proto_count.detach(),
@@ -194,10 +228,12 @@ def build_stage2_visual_prototypes(
 
 def build_class_part_blocks_from_dataset(dataset, device: torch.device) -> List[Dict]:
     blocks_by_cat = {}
+
     if not hasattr(dataset, "data"):
         raise AttributeError("Expected dataset to have .data. This helper is for pth-backed DinoClipJointDataset.")
 
     data_iter = dataset.data.values() if isinstance(dataset.data, dict) else dataset.data
+
     for sample in data_iter:
         category_id = int(sample["category_id"])
         if category_id in blocks_by_cat:
@@ -205,10 +241,12 @@ def build_class_part_blocks_from_dataset(dataset, device: torch.device) -> List[
 
         part_ids = sample["part_category_id"]
         part_text = sample["part_text_feat"]
+
         if not torch.is_tensor(part_ids):
             part_ids = torch.tensor(part_ids, dtype=torch.long)
         if not torch.is_tensor(part_text):
             part_text = torch.tensor(part_text)
+
         if part_ids.numel() == 0:
             continue
 
@@ -231,11 +269,6 @@ def pairwise_cosine_distance(x: torch.Tensor) -> torch.Tensor:
     return (1.0 - sim).clamp_min(0.0)
 
 
-def pairwise_cosine_similarity(x: torch.Tensor) -> torch.Tensor:
-    x = safe_normalize(x.float(), dim=-1)
-    return x @ x.T
-
-
 def sinkhorn(
     a: torch.Tensor,
     b: torch.Tensor,
@@ -244,7 +277,8 @@ def sinkhorn(
     max_iter: int = 50,
     eps: float = 1e-8,
 ) -> torch.Tensor:
-    kernel = torch.exp(-cost / float(epsilon)).clamp_min(eps)
+    """Legacy entropic OT helper retained for old imports/debug scripts. Not used by Stage3 training."""
+    kernel = torch.exp(-cost / epsilon).clamp_min(eps)
     u = torch.ones_like(a)
     v = torch.ones_like(b)
     for _ in range(max_iter):
@@ -254,6 +288,11 @@ def sinkhorn(
 
 
 def gw_cost_matrix(C1: torch.Tensor, C2: torch.Tensor, T: torch.Tensor, p: torch.Tensor, q: torch.Tensor) -> torch.Tensor:
+    """
+    Squared-loss GW linearized cost matrix.
+
+    M_ij = sum_k C1_ik^2 p_k + sum_l C2_jl^2 q_l - 2 * (C1 T C2^T)_ij
+    """
     const1 = (C1 ** 2) @ p
     const2 = (C2 ** 2) @ q
     return const1[:, None] + const2[None, :] - 2.0 * C1 @ T @ C2.T
@@ -266,38 +305,28 @@ def entropic_gw(
     epsilon: float = 0.01,
     max_iter: int = 20,
     sinkhorn_iter: int = 50,
-    init: str = "uniform",
+    init: str = "identity",
     hard: bool = False,
 ) -> torch.Tensor:
-    """Return GW transport P. Use P as pairwise matching weights, not as target averaging."""
+    """
+    Legacy entropic GW solver retained for old debug scripts. Not used by Stage3 training.
+    """
     if C1.shape != C2.shape:
         raise ValueError(f"GW expects same-size blocks, got {C1.shape} and {C2.shape}")
-
     k = C1.shape[0]
     device = C1.device
     p = torch.full((k,), 1.0 / k, device=device)
     q = torch.full((k,), 1.0 / k, device=device)
-
-    C1 = C1.float()
-    C2 = C2.float()
-    C1 = C1 - C1.min()
-    C2 = C2 - C2.min()
-    C1 = C1 / C1.max().clamp_min(1e-6)
-    C2 = C2 / C2.max().clamp_min(1e-6)
-
     if init == "identity":
         T = torch.eye(k, device=device) / float(k)
     elif init == "uniform":
         T = p[:, None] * q[None, :]
     else:
         raise ValueError(f"Unknown GW init: {init}")
-
     for _ in range(max_iter):
         cost = gw_cost_matrix(C1, C2, T, p, q)
         cost = cost - cost.min()
-        cost = cost / cost.max().clamp_min(1e-6)
         T = sinkhorn(p, q, cost, epsilon=epsilon, max_iter=sinkhorn_iter)
-
     if hard:
         idx = T.argmax(dim=1)
         T_hard = torch.zeros_like(T)
@@ -306,7 +335,145 @@ def entropic_gw(
     return T.detach()
 
 
+@torch.no_grad()
+def make_perm_transport(row_to_col: torch.Tensor, k: int) -> torch.Tensor:
+    """Strict bijective transport for a row->column permutation."""
+    T = torch.zeros(k, k, device=row_to_col.device, dtype=torch.float32)
+    T[torch.arange(k, device=row_to_col.device), row_to_col] = 1.0 / float(k)
+    return T
+
+
+def hard_gw_struct_objective(C1: torch.Tensor, C2: torch.Tensor, row_to_col: torch.Tensor) -> torch.Tensor:
+    """
+    Hard-bijective GW structural objective for a fixed permutation.
+
+    row_to_col[i] = j means source node i is matched to target node j.
+    This returns mean_{i,k} (C1[i,k] - C2[pi(i), pi(k)])^2.
+    """
+    C2_perm = C2[row_to_col][:, row_to_col]
+    return F.mse_loss(C1, C2_perm)
+
+
+
+
+@torch.no_grad()
+def improve_perm_by_pair_swaps(
+    C1: torch.Tensor,
+    C2: torch.Tensor,
+    perm: torch.Tensor,
+    max_passes: int = 10,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Greedy 2-swap local improvement for a hard GW permutation.
+
+    This is not brute-force enumeration over all permutations. It only checks
+    pair swaps around the current hard bijection and accepts swaps that reduce
+    the GW structural objective.
+    """
+    best_perm = perm.detach().clone()
+    best_obj = hard_gw_struct_objective(C1, C2, best_perm).detach()
+    k = int(best_perm.numel())
+
+    for _ in range(max(1, int(max_passes))):
+        improved = False
+        for a in range(k):
+            for b in range(a + 1, k):
+                cand = best_perm.clone()
+                tmp = cand[a].clone()
+                cand[a] = cand[b]
+                cand[b] = tmp
+                obj = hard_gw_struct_objective(C1, C2, cand).detach()
+                if obj.item() + 1e-12 < best_obj.item():
+                    best_perm = cand
+                    best_obj = obj
+                    improved = True
+        if not improved:
+            break
+
+    return best_perm, best_obj
+
+
+@torch.no_grad()
+def hard_bijective_gw_match(
+    C1: torch.Tensor,
+    C2: torch.Tensor,
+    num_iters: int = 30,
+    num_restarts: int = 50,
+    include_identity: bool = True,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Find a hard one-to-one GW permutation with iterative linearization + Hungarian.
+
+    This is not used as a feature-level alignment target. It is used only to
+    choose the permutation pi for the structural objective:
+        mean (C1 - C2[pi][:, pi])^2
+
+    Returns:
+        best_perm: [K], row i -> column best_perm[i]
+        best_obj:  scalar objective value under detached C1/C2
+    """
+    if C1.shape != C2.shape:
+        raise ValueError(f"Hard bijective GW expects same-size blocks, got {C1.shape} and {C2.shape}")
+
+    try:
+        from scipy.optimize import linear_sum_assignment
+    except Exception as exc:
+        raise ImportError(
+            "hard_bijective_gw_match requires scipy.optimize.linear_sum_assignment. "
+            "Install scipy or run in the environment where scipy is available."
+        ) from exc
+
+    C1d = C1.detach()
+    C2d = C2.detach()
+    k = C1d.shape[0]
+    device = C1d.device
+    p = torch.full((k,), 1.0 / float(k), device=device)
+    q = torch.full((k,), 1.0 / float(k), device=device)
+
+    best_perm = None
+    best_obj = None
+
+    total_restarts = max(1, int(num_restarts))
+    for restart_id in range(total_restarts):
+        if restart_id == 0 and include_identity:
+            perm = torch.arange(k, device=device)
+        else:
+            perm = torch.randperm(k, device=device)
+
+        T = make_perm_transport(perm, k).to(device=device, dtype=C1d.dtype)
+
+        for _ in range(max(1, int(num_iters))):
+            cost = gw_cost_matrix(C1d, C2d, T, p, q)
+            row_ind, col_ind = linear_sum_assignment(cost.detach().cpu().numpy())
+
+            new_perm = torch.empty(k, dtype=torch.long, device=device)
+            row_tensor = torch.tensor(row_ind, dtype=torch.long, device=device)
+            col_tensor = torch.tensor(col_ind, dtype=torch.long, device=device)
+            new_perm[row_tensor] = col_tensor
+
+            new_T = make_perm_transport(new_perm, k).to(device=device, dtype=C1d.dtype)
+            if torch.equal(new_perm, perm):
+                perm = new_perm
+                T = new_T
+                break
+            perm = new_perm
+            T = new_T
+
+        perm, obj = improve_perm_by_pair_swaps(
+            C1d,
+            C2d,
+            perm,
+            max_passes=max(1, int(num_iters) // 2),
+        )
+        if best_obj is None or obj.item() < best_obj.item():
+            best_obj = obj.detach()
+            best_perm = perm.detach().clone()
+
+    return best_perm, best_obj
+
+
 def upper_tri_vector(mat: torch.Tensor) -> torch.Tensor:
+    """Return upper-triangular entries excluding the diagonal."""
     k = mat.shape[0]
     if k < 2:
         return mat.new_empty((0,))
@@ -315,6 +482,7 @@ def upper_tri_vector(mat: torch.Tensor) -> torch.Tensor:
 
 
 def rankdata_torch(x: torch.Tensor) -> torch.Tensor:
+    """Simple rankdata for audit-only Spearman; ties are not specially averaged."""
     if x.numel() == 0:
         return x.float()
     order = torch.argsort(x)
@@ -324,6 +492,7 @@ def rankdata_torch(x: torch.Tensor) -> torch.Tensor:
 
 
 def spearman_corr_torch(x: torch.Tensor, y: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
+    """Spearman correlation between two 1-D tensors, audit-only."""
     x = x.flatten().float()
     y = y.flatten().float()
     valid = torch.isfinite(x) & torch.isfinite(y)
@@ -341,7 +510,13 @@ def spearman_corr_torch(x: torch.Tensor, y: torch.Tensor, eps: float = 1e-8) -> 
     return (rx * ry).sum() / denom
 
 
+def pairwise_cosine_similarity(x: torch.Tensor) -> torch.Tensor:
+    x = safe_normalize(x.float(), dim=-1)
+    return x @ x.T
+
+
 def structure_spearman(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    """Spearman between pairwise cosine structures of a and b."""
     sim_a = pairwise_cosine_similarity(a)
     sim_b = pairwise_cosine_similarity(b)
     return spearman_corr_torch(upper_tri_vector(sim_a), upper_tri_vector(sim_b))
@@ -355,6 +530,7 @@ def structure_retrieval_metric(feat_1: torch.Tensor, feat_2: torch.Tensor) -> to
 
     feat_1_ = safe_normalize(feat_1.float(), dim=-1)
     feat_2_ = safe_normalize(feat_2.float(), dim=-1)
+
     sim_1 = feat_1_ @ feat_1_.T
     sim_2 = feat_2_ @ feat_2_.T
 
@@ -364,17 +540,29 @@ def structure_retrieval_metric(feat_1: torch.Tensor, feat_2: torch.Tensor) -> to
 
     sim_1 = sim_1 - sim_1.mean(dim=-1, keepdim=True)
     sim_2 = sim_2 - sim_2.mean(dim=-1, keepdim=True)
+
     sim_1_norm = safe_normalize(sim_1, dim=-1)
     sim_2_norm = safe_normalize(sim_2, dim=-1)
+
     sim_1_2 = sim_1_norm @ sim_2_norm.T
     if torch.isnan(sim_1_2).any():
         return feat_1.new_tensor(float("nan"))
+
     idx = sim_1_2.argmax(dim=0)
     target = torch.arange(n, device=feat_1.device)
     return (idx == target).float().mean()
 
 
 class Stage3GWLoss(nn.Module):
+    """
+    Stage 3 loss with exactly two Stage3 terms:
+      1) hard-bijective GW structural alignment between projected T and V
+      2) T-structure preservation before/after projection
+
+    Object InfoNCE is kept only for backward compatibility with existing configs;
+    set lambda_obj=0.0 for GW-only Stage3.
+    """
+
     def __init__(
         self,
         sim_model: nn.Module,
@@ -386,9 +574,9 @@ class Stage3GWLoss(nn.Module):
         lambda_obj: float = 600.0,
         lambda_gw: float = 0.25,
         lambda_struct: float = 0.0,
-        gw_epsilon: float = 0.05,
+        gw_epsilon: float = 0.05,       # retained for config compatibility; not used by hard GW
         gw_max_iter: int = 20,
-        sinkhorn_iter: int = 50,
+        sinkhorn_iter: int = 50,        # reused as number of hard-GW random restarts
         min_proto_count: int = 1,
         proto_count: torch.Tensor | None = None,
         patch_temperature: float = 0.07,
@@ -428,18 +616,17 @@ class Stage3GWLoss(nn.Module):
         )
 
         self.gw_blocks = []
-        self._precompute_gw_plans()
+        self._prepare_gw_blocks()
 
     @torch.no_grad()
-    def _precompute_gw_plans(self) -> None:
-        """
-        Backward-compatible name, but no transport is precomputed here.
-        It only prepares blocks. GW transport is computed dynamically in _gw_loss().
-        """
+    def _prepare_gw_blocks(self) -> None:
+        """Cache per-object text/visual blocks only. Do not precompute transport."""
         self.gw_blocks = []
+
         for block in self.class_blocks:
             part_ids = block["part_ids"]
             part_text = block["part_text"].float()
+
             if part_ids.numel() < 2:
                 continue
 
@@ -467,73 +654,75 @@ class Stage3GWLoss(nn.Module):
                 }
             )
 
-        print(f"[Stage3GWLoss] valid dynamic-GW blocks: {len(self.gw_blocks)}")
+        print(f"[Stage3GWLoss] valid GW blocks: {len(self.gw_blocks)}")
         for block in self.gw_blocks:
             print(
-                f" - {block['class_name']} "
+                f"  - {block['class_name']} "
                 f"category_id={block['category_id']} parts={block['part_ids'].numel()}"
             )
 
     def _gw_loss(self) -> torch.Tensor:
         """
-        Dynamic GW assignment + pairwise alignment.
-        No weighted visual target is constructed.
+        Hard-bijective GW structural loss.
+
+        For each block:
+          Z = projector(T)
+          C_z = D(Z)
+          C_v = D(V)
+          pi = hard_bijective_gw_match(C_z.detach(), C_v.detach())
+          loss = MSE(C_z, C_v[pi][:, pi])
+
+        No feature-level alignment, no soft transport, no weighted target.
         """
         losses = []
+
         for block in self.gw_blocks:
             part_text = block["part_text"]
-            visual = safe_normalize(block["visual"].float(), dim=-1)
+            visual = block["visual"]
 
             projected_text = self.sim_model.project_clip_txt(part_text)
             projected_text = safe_normalize(projected_text, dim=-1)
+            visual = safe_normalize(visual, dim=-1)
 
-            # Current projected T structure vs fixed V structure.
-            C_text = pairwise_cosine_distance(projected_text.detach())
-            C_visual = pairwise_cosine_distance(visual.detach())
+            C_proj = pairwise_cosine_distance(projected_text)
+            C_visual = pairwise_cosine_distance(visual).detach()
 
-            transport = entropic_gw(
-                C_text,
+            perm, _ = hard_bijective_gw_match(
+                C_proj.detach(),
                 C_visual,
-                epsilon=self.gw_epsilon,
-                max_iter=self.gw_max_iter,
-                sinkhorn_iter=self.sinkhorn_iter,
-                init="uniform",
-                hard=False,
+                num_iters=self.gw_max_iter,
+                num_restarts=max(1, self.sinkhorn_iter),
+                include_identity=True,
             )
 
-            cost = 1.0 - projected_text @ visual.T
-            loss = (transport * cost).sum()
+            C_visual_perm = C_visual[perm][:, perm]
+            loss = F.mse_loss(C_proj, C_visual_perm)
             losses.append(loss)
 
         if len(losses) == 0:
             return self.visual_proto.new_tensor(0.0)
+
         return torch.stack(losses).mean()
 
     def _struct_loss(self) -> torch.Tensor:
-        """
-        Keep T structure after projection:
-            MSE( upper_tri(cos(projector(T))), upper_tri(cos(T)) )
-        This is the near-rotation / structure-preserving constraint.
-        """
+        """Preserve T structure after projection: MSE(D(projector(T)), D(T))."""
         losses = []
+
         for block in self.gw_blocks:
-            part_text = block["part_text"].float()
+            part_text = block["part_text"]
             if part_text.shape[0] < 2:
                 continue
-            pre_text = safe_normalize(part_text.detach(), dim=-1)
-            post_text = self.sim_model.project_clip_txt(part_text)
-            post_text = safe_normalize(post_text, dim=-1)
 
-            sim_pre = pairwise_cosine_similarity(pre_text)
-            sim_post = pairwise_cosine_similarity(post_text)
-            pre_vec = upper_tri_vector(sim_pre.detach())
-            post_vec = upper_tri_vector(sim_post)
-            if pre_vec.numel() == 0:
-                continue
-            losses.append(F.mse_loss(post_vec, pre_vec))
+            projected_text = self.sim_model.project_clip_txt(part_text)
+            projected_text = safe_normalize(projected_text, dim=-1)
+
+            C_pre = pairwise_cosine_distance(part_text).detach()
+            C_post = pairwise_cosine_distance(projected_text)
+            losses.append(F.mse_loss(C_post, C_pre))
 
         if len(losses) == 0:
             return self.visual_proto.new_tensor(0.0)
+
         return torch.stack(losses).mean()
 
     @torch.no_grad()
@@ -544,11 +733,13 @@ class Stage3GWLoss(nn.Module):
             "audit_strret_pre_text_vs_visual": [],
             "audit_strret_post_text_vs_visual": [],
         }
+
         for block in self.gw_blocks:
             part_text = block["part_text"]
             visual = safe_normalize(block["visual"], dim=-1)
             if part_text.shape[0] < 2:
                 continue
+
             pre_text = safe_normalize(part_text.float(), dim=-1)
             post_text = self.sim_model.project_clip_txt(part_text)
             post_text = safe_normalize(post_text.float(), dim=-1)
@@ -563,8 +754,12 @@ class Stage3GWLoss(nn.Module):
             values["audit_spear_post_text_vs_visual"].append(
                 spearman_corr_torch(upper_tri_vector(sim_post), upper_tri_vector(sim_vis))
             )
-            values["audit_strret_pre_text_vs_visual"].append(structure_retrieval_metric(pre_text, visual))
-            values["audit_strret_post_text_vs_visual"].append(structure_retrieval_metric(post_text, visual))
+            values["audit_strret_pre_text_vs_visual"].append(
+                structure_retrieval_metric(pre_text, visual)
+            )
+            values["audit_strret_post_text_vs_visual"].append(
+                structure_retrieval_metric(post_text, visual)
+            )
 
         out: Dict[str, torch.Tensor] = {}
         device = self.visual_proto.device
@@ -579,6 +774,7 @@ class Stage3GWLoss(nn.Module):
 
     @torch.no_grad()
     def _anchor_audit_with_model(self, batch: Dict, model: nn.Module) -> Dict[str, torch.Tensor]:
+        """Batch-level anchor hit audit using real part_gt_mask_patch if available."""
         required = [
             "part_text_feat",
             "patch_tokens",
@@ -604,6 +800,7 @@ class Stage3GWLoss(nn.Module):
         part_proj = model.project_clip_txt(part_text_feat)
         part_proj = safe_normalize(part_proj, dim=-1)
         patch_tokens = safe_normalize(patch_tokens, dim=-1)
+
         abs_logits = torch.einsum("bkd,bnd->bkn", part_proj, patch_tokens) / float(self.patch_temperature)
         abs_logits = abs_logits.masked_fill(~obj_mask_patch[:, None, :], -1e4)
 
@@ -619,11 +816,13 @@ class Stage3GWLoss(nn.Module):
 
     @torch.no_grad()
     def _anchor_audit(self, batch: Dict) -> Dict[str, torch.Tensor]:
+        """Current/post-projection anchor hit audit."""
         post = self._anchor_audit_with_model(batch, self.sim_model)
         return {
             "anchor_hit_rate_post": post["anchor_hit_rate"],
             "anchor_total_valid_parts_post": post["anchor_total_valid_parts"],
             "anchor_total_hits_post": post["anchor_total_hits"],
+            # Backward-compatible alias used by old logging scripts.
             "anchor_hit_rate": post["anchor_hit_rate"],
             "anchor_total_valid_parts": post["anchor_total_valid_parts"],
             "anchor_total_hits": post["anchor_total_hits"],
@@ -674,6 +873,8 @@ class Stage3GWLoss(nn.Module):
 
         if batch is not None and do_anchor_audit:
             out.update(self._anchor_audit(batch))
+
         if do_structure_audit:
             out.update(self._structure_audit())
+
         return out
