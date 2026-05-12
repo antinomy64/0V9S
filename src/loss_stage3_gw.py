@@ -61,13 +61,87 @@ def compute_relative_scores(local_scores: torch.Tensor) -> torch.Tensor:
 
 
 @torch.no_grad()
+def select_anchor_tokens_from_logits(
+    patch_tokens: torch.Tensor,
+    abs_logits: torch.Tensor,
+    obj_mask_patch: torch.Tensor,
+    part_valid_mask: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Select the exact single anchor patch token used by Stage-1 anchor/EM.
+
+    This mirrors JointObjPartLoss._anchor_proto_em_pool anchor selection:
+      1) restrict patches to the object mask;
+      2) compute relative part-vs-other scores;
+      3) greedily assign high-scoring unique patches to parts;
+      4) fallback to each part's best relative-score patch if unassigned.
+
+    Returns:
+        anchor_tokens: [B, K, D]
+        anchor_valid:  [B, K]
+    """
+    B, K, _ = abs_logits.shape
+    D = patch_tokens.shape[-1]
+    anchor_tokens = patch_tokens.new_zeros((B, K, D))
+    anchor_valid = torch.zeros((B, K), dtype=torch.bool, device=patch_tokens.device)
+
+    for b in range(B):
+        valid_patch_mask = obj_mask_patch[b]
+        valid_part_idx = torch.nonzero(part_valid_mask[b], as_tuple=False).squeeze(1)
+
+        if valid_part_idx.numel() == 0 or valid_patch_mask.sum() == 0:
+            continue
+
+        valid_patch_tokens = patch_tokens[b][valid_patch_mask]
+        local_scores = abs_logits[b][valid_part_idx][:, valid_patch_mask]
+
+        Kb, Mb = local_scores.shape
+        if Mb == 0:
+            continue
+
+        rel_scores = compute_relative_scores(local_scores)
+        flat_scores = rel_scores.reshape(-1)
+        sorted_idx = torch.argsort(flat_scores, descending=True)
+
+        anchor_idx_local = torch.full((Kb,), -1, dtype=torch.long, device=local_scores.device)
+        patch_taken = torch.zeros((Mb,), dtype=torch.bool, device=local_scores.device)
+
+        assigned_parts = 0
+        for flat_id in sorted_idx:
+            p_local = torch.div(flat_id, Mb, rounding_mode="floor")
+            n_local = flat_id % Mb
+
+            if anchor_idx_local[p_local] != -1:
+                continue
+            if patch_taken[n_local]:
+                continue
+
+            anchor_idx_local[p_local] = n_local
+            patch_taken[n_local] = True
+            assigned_parts += 1
+            if assigned_parts == Kb:
+                break
+
+        unassigned = torch.nonzero(anchor_idx_local < 0, as_tuple=False).squeeze(1)
+        if unassigned.numel() > 0:
+            local_best = rel_scores.argmax(dim=1)
+            anchor_idx_local[unassigned] = local_best[unassigned]
+
+        anchor_tokens[b, valid_part_idx] = valid_patch_tokens[anchor_idx_local]
+        anchor_valid[b, valid_part_idx] = True
+
+    return anchor_tokens, anchor_valid
+
+
+@torch.no_grad()
 def extract_z_part_from_batch(
     model: nn.Module,
     batch: Dict,
     patch_temperature: float = 0.07,
     em_iters: int = 1,
     anchor_helper: JointObjPartLoss | None = None,
-) -> torch.Tensor:
+    return_anchor_tokens: bool = False,
+):
     """
     Extract pseudo part visual features z_part from one batch by directly reusing
     the Stage-1 anchor/prototype routine:
@@ -83,7 +157,12 @@ def extract_z_part_from_batch(
     that mask does not affect anchor selection, EM assignment, or z_part.
 
     Returns:
-        z_part: [B, K, D]
+        if return_anchor_tokens is False:
+            z_part: [B, K, D]
+        else:
+            z_part:        [B, K, D], EM/region pooled pseudo part features
+            anchor_tokens: [B, K, D], selected single anchor patch token per valid part
+            anchor_valid:  [B, K], whether an anchor token was found
     """
     device = next(model.parameters()).device
 
@@ -129,6 +208,15 @@ def extract_z_part_from_batch(
         num_iters=em_iters,
     )
 
+    if return_anchor_tokens:
+        anchor_tokens, anchor_valid = select_anchor_tokens_from_logits(
+            patch_tokens=patch_tokens,
+            abs_logits=abs_logits,
+            obj_mask_patch=obj_mask_patch,
+            part_valid_mask=part_valid_mask,
+        )
+        return z_part, anchor_tokens, anchor_valid
+
     return z_part
 
 @torch.no_grad()
@@ -138,6 +226,7 @@ def build_stage2_visual_prototypes(
     num_parts: int,
     patch_temperature: float = 0.07,
     em_iters: int = 1,
+    visual_source: str = "zpart",
 ) -> Dict[str, torch.Tensor]:
     """
     Build global visual prototypes in memory.
@@ -145,7 +234,8 @@ def build_stage2_visual_prototypes(
     This is intentionally the simple Stage 2 baseline requested:
       - no top-k confidence filtering
       - no per-part sample filtering
-      - mean all pseudo z_part by part_category_id
+      - visual_source="zpart": mean all pseudo z_part by part_category_id
+      - visual_source="anchor": mean all selected single anchor patch tokens by part_category_id
 
     Returns:
         {
@@ -155,6 +245,10 @@ def build_stage2_visual_prototypes(
     """
     device = next(model.parameters()).device
     model.eval()
+
+    visual_source = str(visual_source).lower()
+    if visual_source not in {"zpart", "anchor"}:
+        raise ValueError(f"visual_source must be 'zpart' or 'anchor', got {visual_source}")
 
     proto_sum = None
     proto_count = torch.zeros(num_parts, device=device)
@@ -178,19 +272,34 @@ def build_stage2_visual_prototypes(
             moved[key] = value.to(device) if torch.is_tensor(value) else value
         batch = moved
 
-        z_part = extract_z_part_from_batch(
-            model=model,
-            batch=batch,
-            patch_temperature=patch_temperature,
-            em_iters=em_iters,
-            anchor_helper=anchor_helper,
-        )
+        if visual_source == "anchor":
+            z_part, anchor_tokens, anchor_valid = extract_z_part_from_batch(
+                model=model,
+                batch=batch,
+                patch_temperature=patch_temperature,
+                em_iters=em_iters,
+                anchor_helper=anchor_helper,
+                return_anchor_tokens=True,
+            )
+            feat_to_accumulate = anchor_tokens
+        else:
+            z_part = extract_z_part_from_batch(
+                model=model,
+                batch=batch,
+                patch_temperature=patch_temperature,
+                em_iters=em_iters,
+                anchor_helper=anchor_helper,
+            )
+            anchor_valid = None
+            feat_to_accumulate = z_part
 
         part_ids = batch["part_category_id"].long()       # [B, K]
         part_valid = batch["part_valid_mask"].bool()      # [B, K]
+        if anchor_valid is not None:
+            part_valid = part_valid & anchor_valid.bool()
 
         if proto_sum is None:
-            dim = z_part.shape[-1]
+            dim = feat_to_accumulate.shape[-1]
             proto_sum = torch.zeros(num_parts, dim, device=device)
 
         bsz, max_k = part_ids.shape
@@ -201,7 +310,7 @@ def build_stage2_visual_prototypes(
                 pid = int(part_ids[b, k].item())
                 if pid < 0 or pid >= num_parts:
                     continue
-                proto_sum[pid] += z_part[b, k]
+                proto_sum[pid] += feat_to_accumulate[b, k]
                 proto_count[pid] += 1.0
 
     if proto_sum is None:
@@ -213,6 +322,7 @@ def build_stage2_visual_prototypes(
     return {
         "visual_proto": visual_proto.detach(),
         "proto_count": proto_count.detach(),
+        "visual_source": visual_source,
     }
 
 
@@ -330,6 +440,102 @@ def entropic_gw(
     return T.detach()
 
 
+def upper_tri_vector(mat: torch.Tensor) -> torch.Tensor:
+    """Return upper-triangular entries excluding the diagonal."""
+    k = mat.shape[0]
+    if k < 2:
+        return mat.new_empty((0,))
+    idx = torch.triu_indices(k, k, offset=1, device=mat.device)
+    return mat[idx[0], idx[1]]
+
+
+def rankdata_torch(x: torch.Tensor) -> torch.Tensor:
+    """Simple rankdata for audit-only Spearman; ties are not specially averaged."""
+    if x.numel() == 0:
+        return x.float()
+    order = torch.argsort(x)
+    ranks = torch.empty_like(order, dtype=torch.float32)
+    ranks[order] = torch.arange(x.numel(), device=x.device, dtype=torch.float32)
+    return ranks
+
+
+def spearman_corr_torch(x: torch.Tensor, y: torch.Tensor, eps: float = 1e-8) -> torch.Tensor:
+    """Spearman correlation between two 1-D tensors, audit-only."""
+    x = x.flatten().float()
+    y = y.flatten().float()
+    valid = torch.isfinite(x) & torch.isfinite(y)
+    x = x[valid]
+    y = y[valid]
+    if x.numel() < 2 or y.numel() < 2:
+        return x.new_tensor(float("nan"))
+    rx = rankdata_torch(x)
+    ry = rankdata_torch(y)
+    rx = rx - rx.mean()
+    ry = ry - ry.mean()
+    denom = rx.norm() * ry.norm()
+    if denom <= eps:
+        return x.new_tensor(float("nan"))
+    return (rx * ry).sum() / denom
+
+
+def pairwise_cosine_similarity(x: torch.Tensor) -> torch.Tensor:
+    x = safe_normalize(x.float(), dim=-1)
+    return x @ x.T
+
+
+def structure_spearman(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    """Spearman between pairwise cosine structures of a and b."""
+    sim_a = pairwise_cosine_similarity(a)
+    sim_b = pairwise_cosine_similarity(b)
+    return spearman_corr_torch(upper_tri_vector(sim_a), upper_tri_vector(sim_b))
+
+
+def structure_retrieval_metric(feat_1: torch.Tensor, feat_2: torch.Tensor) -> torch.Tensor:
+    """
+    Structure retrieval metric matching metric.py::structure_retrieval(use_HM=False).
+
+    feat_1: [N, D1]
+    feat_2: [N, D2]
+
+    Steps:
+      1) Build cosine self-similarity matrices for feat_1 and feat_2.
+      2) Remove each diagonal, so each node is represented by its N-1 relations.
+      3) Row-center and row-normalize these relation vectors.
+      4) Compute cross-similarity between relation vectors.
+      5) For each feat_2 node/column, retrieve the most similar feat_1 node.
+         Count it correct iff the retrieved index equals the identity index.
+    """
+    assert feat_1.shape[0] == feat_2.shape[0]
+    n = feat_1.shape[0]
+    if n <= 1:
+        return feat_1.new_tensor(float("nan"))
+
+    feat_1_ = safe_normalize(feat_1.float(), dim=-1)
+    feat_2_ = safe_normalize(feat_2.float(), dim=-1)
+
+    sim_1 = feat_1_ @ feat_1_.T
+    sim_2 = feat_2_ @ feat_2_.T
+
+    eye = torch.eye(n, dtype=torch.bool, device=feat_1.device)
+    sim_1 = sim_1[~eye].view(n, -1)
+    sim_2 = sim_2[~eye].view(n, -1)
+
+    sim_1 = sim_1 - sim_1.mean(dim=-1, keepdim=True)
+    sim_2 = sim_2 - sim_2.mean(dim=-1, keepdim=True)
+
+    sim_1_norm = safe_normalize(sim_1, dim=-1)
+    sim_2_norm = safe_normalize(sim_2, dim=-1)
+
+    sim_1_2 = sim_1_norm @ sim_2_norm.T
+    if torch.isnan(sim_1_2).any():
+        return feat_1.new_tensor(float("nan"))
+
+    idx = sim_1_2.argmax(dim=0)
+    target = torch.arange(n, device=feat_1.device)
+    return (idx == target).float().mean()
+
+
+
 class Stage3GWLoss(nn.Module):
     """
     Stage 3 loss:
@@ -357,6 +563,8 @@ class Stage3GWLoss(nn.Module):
         sinkhorn_iter: int = 50,
         min_proto_count: int = 1,
         proto_count: torch.Tensor | None = None,
+        patch_temperature: float = 0.07,
+        em_iters: int = 1,
     ):
         super().__init__()
         self.sim_model = sim_model
@@ -369,12 +577,27 @@ class Stage3GWLoss(nn.Module):
         self.sinkhorn_iter = int(sinkhorn_iter)
         self.min_proto_count = int(min_proto_count)
         self.proto_count = proto_count
+        self.patch_temperature = float(patch_temperature)
+        self.em_iters = int(em_iters)
 
         self.obj_criterion = ContrastiveLoss(
             sim_model,
             margin=obj_margin,
             max_violation=obj_max_violation,
             ltype=obj_ltype,
+        )
+
+        # Used only for lightweight anchor-hit auditing. It reuses the exact
+        # Stage-1 anchor / EM routine and does not add a training loss.
+        self.anchor_helper = JointObjPartLoss(
+            sim_model=sim_model,
+            obj_ltype=obj_ltype,
+            lambda_obj=0.0,
+            lambda_inst=0.0,
+            lambda_overlap=0.0,
+            lambda_spear=0.0,
+            patch_temperature=self.patch_temperature,
+            em_iters=self.em_iters,
         )
 
         self.gw_blocks = []
@@ -455,32 +678,232 @@ class Stage3GWLoss(nn.Module):
 
         return torch.stack(losses).mean()
 
-    def forward(self, batch: Dict) -> Dict[str, torch.Tensor]:
-        obj_feat = batch["obj_feat"]
-        obj_text_feat = batch["obj_text_feat"]
+    @torch.no_grad()
+    def _structure_audit(self) -> Dict[str, torch.Tensor]:
+        """
+        Minimal structure audit.
 
-        obj_loss = self.obj_criterion(
-            obj_feat,
-            obj_text_feat,
-            return_similarity_mat=False,
-            self_attn_maps=None,
-            cls=None,
-            text_input_mask=None,
-            text_argmax=None,
+        Kept metrics only:
+          - pre/post text vs visual Spearman over pairwise cosine structures
+          - pre/post text vs visual structure retrieval, using metric.py-style
+            structure_retrieval logic
+
+        pre  = unprojected CLIP part text features, part_ann_feats
+        post = projector(part_ann_feats)
+        V    = Stage2 global visual prototypes, sliced by object block
+        """
+        values: Dict[str, List[torch.Tensor]] = {
+            "audit_spear_pre_text_vs_visual": [],
+            "audit_spear_post_text_vs_visual": [],
+            "audit_strret_pre_text_vs_visual": [],
+            "audit_strret_post_text_vs_visual": [],
+        }
+
+        for block in self.gw_blocks:
+            part_text = block["part_text"]
+            visual = safe_normalize(block["visual"], dim=-1)
+
+            if part_text.shape[0] < 2:
+                continue
+
+            pre_text = safe_normalize(part_text.float(), dim=-1)
+            post_text = self.sim_model.project_clip_txt(part_text)
+            post_text = safe_normalize(post_text.float(), dim=-1)
+
+            sim_pre = pairwise_cosine_similarity(pre_text)
+            sim_post = pairwise_cosine_similarity(post_text)
+            sim_vis = pairwise_cosine_similarity(visual)
+
+            values["audit_spear_pre_text_vs_visual"].append(
+                spearman_corr_torch(upper_tri_vector(sim_pre), upper_tri_vector(sim_vis))
+            )
+            values["audit_spear_post_text_vs_visual"].append(
+                spearman_corr_torch(upper_tri_vector(sim_post), upper_tri_vector(sim_vis))
+            )
+            values["audit_strret_pre_text_vs_visual"].append(
+                structure_retrieval_metric(pre_text, visual)
+            )
+            values["audit_strret_post_text_vs_visual"].append(
+                structure_retrieval_metric(post_text, visual)
+            )
+
+        out: Dict[str, torch.Tensor] = {}
+        device = self.visual_proto.device
+        for key, vals in values.items():
+            if len(vals) == 0:
+                out[key] = torch.tensor(float("nan"), device=device)
+                continue
+            stacked = torch.stack([v.to(device).float() for v in vals])
+            finite = torch.isfinite(stacked)
+            out[key] = stacked[finite].mean() if finite.any() else torch.tensor(float("nan"), device=device)
+        return out
+
+    @torch.no_grad()
+    def _anchor_audit_with_model(self, batch: Dict, model: nn.Module) -> Dict[str, torch.Tensor]:
+        """Batch-level anchor hit audit using real part_gt_mask_patch if available."""
+        required = [
+            "part_text_feat",
+            "patch_tokens",
+            "obj_mask_patch",
+            "part_valid_mask",
+            "part_gt_mask_patch",
+        ]
+        if any(k not in batch for k in required):
+            z = self.visual_proto.new_tensor(0.0)
+            return {
+                "anchor_hit_rate": z,
+                "anchor_total_valid_parts": z,
+                "anchor_total_hits": z,
+            }
+
+        device = self.visual_proto.device
+        part_text_feat = batch["part_text_feat"].to(device).float()
+        patch_tokens = batch["patch_tokens"].to(device).float()
+        obj_mask_patch = batch["obj_mask_patch"].to(device).bool()
+        part_valid_mask = batch["part_valid_mask"].to(device).bool()
+        part_gt_mask_patch = batch["part_gt_mask_patch"].to(device).bool()
+
+        part_proj = model.project_clip_txt(part_text_feat)
+        part_proj = safe_normalize(part_proj, dim=-1)
+        patch_tokens = safe_normalize(patch_tokens, dim=-1)
+
+        abs_logits = torch.einsum("bkd,bnd->bkn", part_proj, patch_tokens) / float(self.patch_temperature)
+        abs_logits = abs_logits.masked_fill(~obj_mask_patch[:, None, :], -1e4)
+
+        _, _, anchor_metrics = self.anchor_helper._anchor_proto_em_pool(
+            patch_tokens=patch_tokens,
+            abs_logits=abs_logits,
+            obj_mask_patch=obj_mask_patch,
+            part_valid_mask=part_valid_mask,
+            part_gt_mask_patch=part_gt_mask_patch,
+            num_iters=self.em_iters,
         )
+        return anchor_metrics
 
-        gw_loss = self._gw_loss()
-        total = self.lambda_obj * obj_loss + self.lambda_gw * gw_loss
-        zero = total.new_tensor(0.0)
-
+    @torch.no_grad()
+    def _anchor_audit(self, batch: Dict) -> Dict[str, torch.Tensor]:
+        """Current/post-projection anchor hit audit."""
+        post = self._anchor_audit_with_model(batch, self.sim_model)
         return {
+            "anchor_hit_rate_post": post["anchor_hit_rate"],
+            "anchor_total_valid_parts_post": post["anchor_total_valid_parts"],
+            "anchor_total_hits_post": post["anchor_total_hits"],
+            # Backward-compatible alias used by old logging scripts.
+            "anchor_hit_rate": post["anchor_hit_rate"],
+            "anchor_total_valid_parts": post["anchor_total_valid_parts"],
+            "anchor_total_hits": post["anchor_total_hits"],
+        }
+
+
+    def global_forward(
+        self,
+        do_structure_audit: bool = True,
+    ) -> Dict[str, torch.Tensor]:
+        """
+        Global prototype-only forward pass.
+
+        Use this when lambda_obj == 0. It does not require an image batch:
+          total = lambda_gw * Lgw
+
+        It can still report structure audit because that audit only depends on:
+          - fixed pre-text part features,
+          - fixed visual prototypes,
+          - current projector.
+
+        Anchor hit audit cannot be computed here because anchor hit requires
+        image patch tokens and part masks. Run validate_stage3_gw(...) or the
+        standalone audit script for anchor hit after this global update.
+        """
+        device = self.visual_proto.device
+        gw_loss = self._gw_loss()
+        obj_loss = torch.tensor(0.0, device=device)
+        total = self.lambda_gw * gw_loss
+        zero = total.new_tensor(0.0)
+        nan = total.new_tensor(float("nan"))
+
+        out = {
             "total": total,
             "obj": obj_loss.detach(),
             "gw": gw_loss.detach(),
             "inst": zero.detach(),
             "overlap": zero.detach(),
             "spear": zero.detach(),
-            "anchor_hit_rate": zero.detach(),
+            "anchor_hit_rate": nan.detach(),
             "anchor_total_valid_parts": zero.detach(),
             "anchor_total_hits": zero.detach(),
+            "anchor_hit_rate_post": nan.detach(),
+            "anchor_total_valid_parts_post": zero.detach(),
+            "anchor_total_hits_post": zero.detach(),
         }
+
+        if do_structure_audit:
+            out.update({k: v.detach() for k, v in self._structure_audit().items()})
+        else:
+            for key in [
+                "audit_spear_pre_text_vs_visual",
+                "audit_spear_post_text_vs_visual",
+                "audit_strret_pre_text_vs_visual",
+                "audit_strret_post_text_vs_visual",
+            ]:
+                out[key] = nan.detach()
+
+        return out
+
+    def forward(
+        self,
+        batch: Dict,
+        do_anchor_audit: bool = False,
+        do_structure_audit: bool = True,
+    ) -> Dict[str, torch.Tensor]:
+        device = self.visual_proto.device
+
+        if self.lambda_obj > 0:
+            obj_feat = batch["obj_feat"]
+            obj_text_feat = batch["obj_text_feat"]
+            obj_loss = self.obj_criterion(
+                obj_feat,
+                obj_text_feat,
+                return_similarity_mat=False,
+                self_attn_maps=None,
+                cls=None,
+                text_input_mask=None,
+                text_argmax=None,
+            )
+        else:
+            obj_loss = torch.tensor(0.0, device=device)
+
+        gw_loss = self._gw_loss()
+        total = self.lambda_obj * obj_loss + self.lambda_gw * gw_loss
+        zero = total.new_tensor(0.0)
+        nan = total.new_tensor(float("nan"))
+
+        out = {
+            "total": total,
+            "obj": obj_loss.detach(),
+            "gw": gw_loss.detach(),
+            "inst": zero.detach(),
+            "overlap": zero.detach(),
+            "spear": zero.detach(),
+            "anchor_hit_rate": nan.detach(),
+            "anchor_total_valid_parts": zero.detach(),
+            "anchor_total_hits": zero.detach(),
+            "anchor_hit_rate_post": nan.detach(),
+            "anchor_total_valid_parts_post": zero.detach(),
+            "anchor_total_hits_post": zero.detach(),
+        }
+
+        if do_structure_audit:
+            out.update({k: v.detach() for k, v in self._structure_audit().items()})
+        else:
+            for key in [
+                "audit_spear_pre_text_vs_visual",
+                "audit_spear_post_text_vs_visual",
+                "audit_strret_pre_text_vs_visual",
+                "audit_strret_post_text_vs_visual",
+            ]:
+                out[key] = nan.detach()
+
+        if do_anchor_audit:
+            out.update({k: v.detach() for k, v in self._anchor_audit(batch).items()})
+
+        return out

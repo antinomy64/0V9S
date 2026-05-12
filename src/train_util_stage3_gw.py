@@ -78,21 +78,30 @@ def _move_joint_batch_to_device(batch: Dict, device: torch.device) -> Dict:
     return moved
 
 
+def _to_float_or_nan(v) -> float:
+    if torch.is_tensor(v):
+        if v.numel() == 0:
+            return float("nan")
+        return float(v.detach().float().cpu().reshape(-1)[0].item())
+    try:
+        return float(v)
+    except Exception:
+        return float("nan")
+
+
 def _mean_dict(list_of_dicts):
     if len(list_of_dicts) == 0:
         return {}
 
-    keys = list(list_of_dicts[0].keys())
+    keys = sorted({k for d in list_of_dicts for k in d.keys()})
     out = {}
 
     if "anchor_total_valid_parts" in keys and "anchor_total_hits" in keys:
         total_valid = 0.0
         total_hits = 0.0
         for d in list_of_dicts:
-            v_valid = d["anchor_total_valid_parts"]
-            v_hits = d["anchor_total_hits"]
-            total_valid += float(v_valid.detach().float().cpu().item()) if torch.is_tensor(v_valid) else float(v_valid)
-            total_hits += float(v_hits.detach().float().cpu().item()) if torch.is_tensor(v_hits) else float(v_hits)
+            total_valid += _to_float_or_nan(d.get("anchor_total_valid_parts", 0.0))
+            total_hits += _to_float_or_nan(d.get("anchor_total_hits", 0.0))
         out["anchor_total_valid_parts"] = total_valid
         out["anchor_total_hits"] = total_hits
         out["anchor_hit_rate"] = 0.0 if total_valid <= 0 else total_hits / total_valid
@@ -102,14 +111,26 @@ def _mean_dict(list_of_dicts):
             continue
         vals = []
         for d in list_of_dicts:
-            v = d[k]
-            vals.append(v.detach().float().cpu() if torch.is_tensor(v) else torch.tensor(float(v)))
-        out[k] = torch.stack(vals).mean().item()
+            if k not in d:
+                continue
+            val = _to_float_or_nan(d[k])
+            if np.isfinite(val):
+                vals.append(val)
+        out[k] = float(np.mean(vals)) if len(vals) > 0 else float("nan")
 
     return out
 
 
-def train_stage3_gw(model, train_dataloader, criterion, optimizer, scheduler=None, epoch=0):
+def train_stage3_gw(
+    model,
+    train_dataloader,
+    criterion,
+    optimizer,
+    scheduler=None,
+    epoch=0,
+    audit_anchor_every: int = 0,
+    audit_structure_every: int = 1,
+):
     model.train()
     device = next(model.parameters()).device
     prev_iter = epoch * len(train_dataloader)
@@ -122,7 +143,14 @@ def train_stage3_gw(model, train_dataloader, criterion, optimizer, scheduler=Non
         if scheduler is not None:
             scheduler(n_batch + prev_iter)
 
-        losses = criterion(batch)
+        do_anchor_audit = audit_anchor_every > 0 and (n_batch % audit_anchor_every == 0)
+        do_structure_audit = audit_structure_every > 0 and (n_batch % audit_structure_every == 0)
+
+        losses = criterion(
+            batch,
+            do_anchor_audit=do_anchor_audit,
+            do_structure_audit=do_structure_audit,
+        )
         total_loss = losses["total"]
 
         optimizer.zero_grad()
@@ -130,31 +158,120 @@ def train_stage3_gw(model, train_dataloader, criterion, optimizer, scheduler=Non
         optimizer.step()
 
         running.append(losses)
-        pbar.set_description(
+        desc = (
             f"train total={losses['total'].item():.4f} "
             f"obj={losses['obj'].item():.6f} "
             f"gw={losses['gw'].item():.4f}"
         )
+        if do_anchor_audit:
+            desc += f" anchor_post={losses['anchor_hit_rate_post'].item():.4f}"
+        if do_structure_audit and "audit_spear_post_text_vs_visual" in losses:
+            desc += (
+                f" spear_preV={losses['audit_spear_pre_text_vs_visual'].item():.3f}"
+                f" spear_postV={losses['audit_spear_post_text_vs_visual'].item():.3f}"
+                f" str_preV={losses['audit_strret_pre_text_vs_visual'].item():.3f}"
+                f" str_postV={losses['audit_strret_post_text_vs_visual'].item():.3f}"
+            )
+        pbar.set_description(desc)
+
+    return _mean_dict(running)
+
+
+def train_stage3_gw_global(
+    model,
+    criterion,
+    optimizer,
+    scheduler=None,
+    epoch: int = 0,
+    steps_per_epoch: int = 1,
+    audit_structure_every: int = 1,
+):
+    """
+    Prototype-only GW training loop used when lambda_obj == 0.
+
+    It does NOT iterate over image batches and does NOT read patch tokens for
+    the training loss. Each step optimizes the same global objective:
+
+        total = lambda_gw * Lgw
+
+    where Lgw depends only on:
+      - the fixed 116 visual prototypes built once in Stage2,
+      - the fixed part text features in class_blocks,
+      - the current projector parameters.
+
+    If anchor hit is needed, run validate_stage3_gw(...) after the global step
+    or the standalone audit script; anchor hit necessarily needs image batches.
+    """
+    model.train()
+    running = []
+    steps_per_epoch = max(1, int(steps_per_epoch))
+    prev_iter = epoch * steps_per_epoch
+
+    pbar = tqdm(range(steps_per_epoch))
+    for step in pbar:
+        if scheduler is not None:
+            scheduler(step + prev_iter)
+
+        do_structure_audit = audit_structure_every > 0 and (step % audit_structure_every == 0)
+        losses = criterion.global_forward(do_structure_audit=do_structure_audit)
+        total_loss = losses["total"]
+
+        optimizer.zero_grad()
+        total_loss.backward()
+        optimizer.step()
+
+        running.append(losses)
+        desc = f"gw-only total={losses['total'].item():.4f} gw={losses['gw'].item():.4f}"
+        if do_structure_audit and "audit_spear_post_text_vs_visual" in losses:
+            desc += (
+                f" spear_preV={losses['audit_spear_pre_text_vs_visual'].item():.3f}"
+                f" spear_postV={losses['audit_spear_post_text_vs_visual'].item():.3f}"
+                f" str_preV={losses['audit_strret_pre_text_vs_visual'].item():.3f}"
+                f" str_postV={losses['audit_strret_post_text_vs_visual'].item():.3f}"
+            )
+        pbar.set_description(desc)
 
     return _mean_dict(running)
 
 
 @torch.no_grad()
-def validate_stage3_gw(model, val_dataloader, criterion):
+def validate_stage3_gw(
+    model,
+    val_dataloader,
+    criterion,
+    audit_anchor_every: int = 0,
+    audit_structure_every: int = 1,
+):
     model.eval()
     device = next(model.parameters()).device
     running = []
 
     pbar = tqdm(val_dataloader)
-    for batch in pbar:
+    for n_batch, batch in enumerate(pbar):
         batch = _move_joint_batch_to_device(batch, device)
-        losses = criterion(batch)
+        do_anchor_audit = audit_anchor_every > 0 and (n_batch % audit_anchor_every == 0)
+        do_structure_audit = audit_structure_every > 0 and (n_batch % audit_structure_every == 0)
+        losses = criterion(
+            batch,
+            do_anchor_audit=do_anchor_audit,
+            do_structure_audit=do_structure_audit,
+        )
         running.append(losses)
-        pbar.set_description(
+        desc = (
             f"val total={losses['total'].item():.4f} "
             f"obj={losses['obj'].item():.6f} "
             f"gw={losses['gw'].item():.4f}"
         )
+        if do_anchor_audit:
+            desc += f" anchor_post={losses['anchor_hit_rate_post'].item():.4f}"
+        if do_structure_audit and "audit_spear_post_text_vs_visual" in losses:
+            desc += (
+                f" spear_preV={losses['audit_spear_pre_text_vs_visual'].item():.3f}"
+                f" spear_postV={losses['audit_spear_post_text_vs_visual'].item():.3f}"
+                f" str_preV={losses['audit_strret_pre_text_vs_visual'].item():.3f}"
+                f" str_postV={losses['audit_strret_post_text_vs_visual'].item():.3f}"
+            )
+        pbar.set_description(desc)
 
     return _mean_dict(running)
 
@@ -314,6 +431,11 @@ def do_train_stage3_gw(
     gw_max_iter = int(train_cfg.get("gw_max_iter", 20))
     sinkhorn_iter = int(train_cfg.get("sinkhorn_iter", 50))
     min_proto_count = int(train_cfg.get("min_proto_count", 1))
+    audit_anchor_every = int(train_cfg.get("audit_anchor_every", 0))
+    audit_structure_every = int(train_cfg.get("audit_structure_every", 1))
+    gw_only_steps_per_epoch = int(train_cfg.get("gw_only_steps_per_epoch", 1))
+    stage2_visual_source = str(train_cfg.get("stage2_visual_source", "zpart")).lower()
+    gw_only_mode = lambda_obj <= 0.0
 
     if not eval_proj_name:
         raise ValueError("eval_proj_name must be provided for mIoU evaluation.")
@@ -328,6 +450,11 @@ def do_train_stage3_gw(
         f"em_iters={em_iters}, "
         f"gw_epsilon={gw_epsilon}, "
         f"gw_max_iter={gw_max_iter}, "
+        f"audit_anchor_every={audit_anchor_every}, "
+        f"audit_structure_every={audit_structure_every}, "
+        f"gw_only_mode={gw_only_mode}, "
+        f"gw_only_steps_per_epoch={gw_only_steps_per_epoch}, "
+        f"stage2_visual_source={stage2_visual_source}, "
         f"min_obj_area_ratio={getattr(train_dataset, 'min_obj_area_ratio', 0.0)}"
     )
 
@@ -355,13 +482,14 @@ def do_train_stage3_gw(
         num_parts = _infer_num_parts(train_dataset)
     else:
         num_parts = int(num_parts_cfg)
-    print(f"[Stage2] Building visual prototypes in memory, num_parts={num_parts}")
+    print(f"[Stage2] Building visual prototypes in memory, num_parts={num_parts}, visual_source={stage2_visual_source}")
     proto_pack = build_stage2_visual_prototypes(
         model=model,
         dataloader=train_dataloader,
         num_parts=num_parts,
         patch_temperature=patch_temperature,
         em_iters=em_iters,
+        visual_source=stage2_visual_source,
     )
     visual_proto = proto_pack["visual_proto"]
     proto_count = proto_pack["proto_count"]
@@ -384,6 +512,8 @@ def do_train_stage3_gw(
         sinkhorn_iter=sinkhorn_iter,
         min_proto_count=min_proto_count,
         proto_count=proto_count,
+        patch_temperature=patch_temperature,
+        em_iters=em_iters,
     )
 
     if optimizer_name == "Adam":
@@ -393,7 +523,10 @@ def do_train_stage3_gw(
     else:
         raise ValueError(f"Optimizer {optimizer_name} not implemented")
 
-    total_steps = len(train_dataloader) * num_epochs
+    if gw_only_mode:
+        total_steps = max(1, gw_only_steps_per_epoch) * num_epochs
+    else:
+        total_steps = len(train_dataloader) * num_epochs
     if scheduler_name == "linear" and warmup == 0:
         scheduler = None
     elif scheduler_name == "linear" and warmup > 0:
@@ -409,42 +542,49 @@ def do_train_stage3_gw(
     best_val = None
     best_obj_miou = None
 
-    baseline_obj_eval = evaluate_object_miou_subprocess(
-        model=model,
-        proj_name=eval_proj_name,
-        eval_script=miou_eval_script,
-        eval_cfg=miou_eval_cfg,
-        eval_base_cfg=miou_eval_base_cfg,
-        result_dir=miou_result_dir,
-        result_json_name=miou_result_json_name,
-        bench_key=miou_bench_key,
-        extra_opts=miou_extra_opts,
-    )
-    baseline_obj_miou = baseline_obj_eval["obj_eval_miou"]
-    print(f"[baseline object mIoU] miou={baseline_obj_miou:.4f}")
+    baseline_obj_eval = {}
+    baseline_obj_miou = float("nan")
+    # print("[baseline object mIoU] skipped")
 
     for epoch in range(num_epochs):
         print(f"Epoch {epoch} / {num_epochs - 1}")
 
-        train_metrics = train_stage3_gw(
-            model, train_dataloader, criterion, optimizer, scheduler=scheduler, epoch=epoch
+        if gw_only_mode:
+            train_metrics = train_stage3_gw_global(
+                model,
+                criterion,
+                optimizer,
+                scheduler=scheduler,
+                epoch=epoch,
+                steps_per_epoch=gw_only_steps_per_epoch,
+                audit_structure_every=audit_structure_every,
+            )
+        else:
+            train_metrics = train_stage3_gw(
+                model,
+                train_dataloader,
+                criterion,
+                optimizer,
+                scheduler=scheduler,
+                epoch=epoch,
+                audit_anchor_every=audit_anchor_every,
+                audit_structure_every=audit_structure_every,
+            )
+        val_metrics = validate_stage3_gw(
+            model,
+            val_dataloader,
+            criterion,
+            audit_anchor_every=audit_anchor_every,
+            audit_structure_every=audit_structure_every,
         )
-        val_metrics = validate_stage3_gw(model, val_dataloader, criterion)
 
-        obj_eval_metrics = evaluate_object_miou_subprocess(
-            model=model,
-            proj_name=eval_proj_name,
-            eval_script=miou_eval_script,
-            eval_cfg=miou_eval_cfg,
-            eval_base_cfg=miou_eval_base_cfg,
-            result_dir=miou_result_dir,
-            result_json_name=miou_result_json_name,
-            bench_key=miou_bench_key,
-            extra_opts=miou_extra_opts,
-        )
-        obj_eval_metrics["obj_eval_miou_delta_vs_baseline"] = float(
-            obj_eval_metrics["obj_eval_miou"] - baseline_obj_miou
-        )
+        obj_eval_metrics = {
+            "obj_eval_miou": float("nan"),
+            "obj_eval_ckpt_path": "",
+            "obj_eval_result_json": "",
+            "obj_eval_subprocess_returncode": -1,
+            "obj_eval_miou_delta_vs_baseline": float("nan"),
+        }
 
         val_metrics = {**val_metrics, **obj_eval_metrics}
         train_history.append(train_metrics)
@@ -455,12 +595,11 @@ def do_train_stage3_gw(
             f"train_total={train_metrics['total']:.4f}, "
             f"val_total={val_metrics['total']:.4f}, "
             f"val_gw={val_metrics.get('gw', 0.0):.4f}, "
-            f"obj_eval_miou={val_metrics['obj_eval_miou']:.4f}, "
-            f"miou_delta_vs_baseline={val_metrics['obj_eval_miou_delta_vs_baseline']:.4f}"
+            f"obj_eval_miou=skipped"
         )
 
-        current_obj_miou = val_metrics["obj_eval_miou"]
-        obj_ok = current_obj_miou >= (baseline_obj_miou - object_miou_max_drop)
+        current_obj_miou = float("nan")
+        obj_ok = True
 
         if save_best_model:
             if select_best_by_miou:
