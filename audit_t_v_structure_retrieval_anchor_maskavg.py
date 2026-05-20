@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 
 sys.path.insert(0, os.getcwd())
 
-from src.dataset_joint_with_part_anchoraudit import DinoClipJointDataset, joint_collate_fn
+from src.dataset_joint import DinoClipJointDataset, joint_collate_fn
 from src.loss_gw import (
     build_stage2_visual_prototypes,
     build_class_part_blocks_from_dataset,

@@ -8,7 +8,7 @@ import os
 import torch
 import yaml
 
-from src.dataset_joint_with_part_anchoraudit import DinoClipJointDataset
+from src.dataset_joint import DinoClipJointDataset
 from src.train_util_gw import do_train_gw
 
 

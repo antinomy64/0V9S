@@ -16,7 +16,7 @@ from tqdm import tqdm
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from src.dataset_joint_with_part_anchoraudit import DinoClipJointDataset, joint_collate_fn
+from src.dataset_joint import DinoClipJointDataset, joint_collate_fn
 from src.loss_joint import JointObjPartLoss
 from src.loss_gw import (
     build_stage2_visual_prototypes,

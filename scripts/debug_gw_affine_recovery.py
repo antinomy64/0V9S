@@ -19,7 +19,7 @@ import yaml
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.dataset_joint_with_part_anchoraudit import DinoClipJointDataset, joint_collate_fn
+from src.dataset_joint import DinoClipJointDataset, joint_collate_fn
 from src.loss_gw import (
     Stage3GWLoss,
     build_stage2_visual_prototypes,

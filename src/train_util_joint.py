@@ -13,7 +13,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.dataset_joint_with_part_anchoraudit import joint_collate_fn
+from src.dataset_joint import joint_collate_fn
 from src.loss_joint import JointObjPartLoss
 
 

@@ -7,8 +7,8 @@ import os
 import torch
 import yaml
 
-from src.dataset_joint_with_part_anchoraudit import DinoClipJointDataset
-from src.train_util_joint_with_objeval_anchoraudit import do_train_joint
+from src.dataset_joint import DinoClipJointDataset
+from src.train_util_joint import do_train_joint
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'

@@ -717,7 +717,7 @@ def main():
     args = parser.parse_args()
 
     sys.path.insert(0, args.repo_root)
-    from src.dataset_joint_with_part_anchoraudit import DinoClipJointDataset, joint_collate_fn
+    from src.dataset_joint import DinoClipJointDataset, joint_collate_fn
 
     feature_obj = load_pth(args.feature_pth)
     meta_obj = load_pth(args.meta_pth)
