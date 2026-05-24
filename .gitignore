@@ -3,8 +3,9 @@ data
 feature
 weights
 output
+visualizations
 segmentation_results
 anchor_hit_region_audit
 anchor_point_pesudo_joint
-stage3_debug_viz_allblocks
+stage3_debug_viz_maskgt_affine
 stage3_debug_viz_pairalign_affine

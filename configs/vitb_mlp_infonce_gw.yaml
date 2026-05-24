@@ -4,9 +4,9 @@ model:
   dino_embed_dim: 768
 
 train:
-  lr: 0.00003
+  lr: 0.0003
   ltype: 'infonce'
-  num_epochs: 30
+  num_epochs: 300
   batch_size: 128
   save_best_model: False
   num_workers: 8
@@ -22,6 +22,7 @@ train:
 
   #   anchor = mean selected single anchor patch tokens by part id
   #   zpart  = mean EM-pooled pseudo part features by part id
+  #   gtmask
   stage2_visual_source: anchor
 
   gw_only_steps_per_epoch: 1

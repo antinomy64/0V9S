@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import random
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import numpy as np
 import torch
@@ -16,6 +16,7 @@ from src.loss_gw import (
     build_class_part_blocks_from_dataset,
     build_stage2_visual_prototypes,
 )
+from src.loss_joint import JointObjPartLoss
 
 
 # -----------------------------------------------------------------------------
@@ -24,22 +25,25 @@ from src.loss_gw import (
 
 
 def set_seed(seed):
-    print(f'Setting seed {seed}...')
+    print(f"Setting seed {seed}...")
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+
 
 def assign_learning_rate(optimizer, new_lr):
     for param_group in optimizer.param_groups:
         param_group["lr"] = new_lr
 
+
 def _warmup_lr(base_lr, warmup_length, step):
     return base_lr * (step + 1) / warmup_length
+
 
 def const_lr(optimizer, base_lr, warmup_length, steps):
     def _lr_adjuster(step):
@@ -49,7 +53,9 @@ def const_lr(optimizer, base_lr, warmup_length, steps):
             lr = base_lr
         assign_learning_rate(optimizer, lr)
         return lr
+
     return _lr_adjuster
+
 
 def cosine_lr(optimizer, base_lr, warmup_length, steps):
     def _lr_adjuster(step):
@@ -61,11 +67,15 @@ def cosine_lr(optimizer, base_lr, warmup_length, steps):
             lr = 0.5 * (1 + np.cos(np.pi * e / es)) * base_lr
         assign_learning_rate(optimizer, lr)
         return lr
+
     return _lr_adjuster
 
 
 def move_batch_to_device(batch: Dict, device: torch.device) -> Dict:
-    return {k: (v.to(device, non_blocking=True) if torch.is_tensor(v) else v) for k, v in batch.items()}
+    return {
+        k: (v.to(device, non_blocking=True) if torch.is_tensor(v) else v)
+        for k, v in batch.items()
+    }
 
 
 def to_float(v) -> float:
@@ -120,9 +130,86 @@ def infer_num_parts(train_dataset) -> int:
                 max_pid = max(max_pid, int(pids.max().item()))
         elif len(pids) > 0:
             max_pid = max(max_pid, int(max(pids)))
+
     if max_pid < 0:
         raise RuntimeError("Could not infer num_parts from train_dataset.data")
     return max_pid + 1
+
+
+# -----------------------------------------------------------------------------
+# Direct anchor audit: reuse JointObjPartLoss, do not reimplement anchor hit.
+# -----------------------------------------------------------------------------
+
+
+@torch.no_grad()
+def eval_anchor_hit_rate_direct(
+    model,
+    dataloader,
+    obj_ltype: str = "infonce",
+    obj_margin: float = 0.2,
+    obj_max_violation: bool = True,
+    patch_temperature: float = 0.07,
+    em_iters: int = 1,
+    desc: str = "anchor-audit",
+) -> Dict[str, float]:
+    """
+    Eval-only anchor hit rate.
+
+    This directly reuses JointObjPartLoss.forward(), whose anchor_hit_rate is
+    computed by the existing _anchor_proto_em_pool() routine. No extra anchor
+    matching/statistics logic is duplicated here.
+    """
+    device = next(model.parameters()).device
+    was_training = model.training
+    model.eval()
+
+    anchor_loss = JointObjPartLoss(
+        sim_model=model,
+        obj_ltype=obj_ltype,
+        obj_margin=obj_margin,
+        obj_max_violation=obj_max_violation,
+        lambda_obj=0.0,
+        lambda_inst=0.0,
+        lambda_overlap=0.0,
+        lambda_spear=0.0,
+        patch_temperature=patch_temperature,
+        em_iters=em_iters,
+    ).to(device)
+    anchor_loss.eval()
+
+    total_hits = 0.0
+    total_valid = 0.0
+
+    pbar = tqdm(dataloader, desc=desc)
+    for batch in pbar:
+        batch = move_batch_to_device(batch, device)
+        out = anchor_loss(batch)
+
+        hits = to_float(out.get("anchor_total_hits", 0.0))
+        valid = to_float(out.get("anchor_total_valid_parts", 0.0))
+
+        total_hits += hits
+        total_valid += valid
+        hit_rate = 0.0 if total_valid <= 0 else total_hits / total_valid
+
+        pbar.set_description(
+            f"{desc} anchor={hit_rate:.6f} "
+            f"hits={int(total_hits)} total={int(total_valid)}"
+        )
+
+    hit_rate = 0.0 if total_valid <= 0 else total_hits / total_valid
+    print(
+        f"[{desc}] anchor_hit_rate={hit_rate:.6f} "
+        f"hits={int(total_hits)} total={int(total_valid)}"
+    )
+
+    model.train(mode=was_training)
+
+    return {
+        "anchor_hit_rate": float(hit_rate),
+        "anchor_total_hits": float(total_hits),
+        "anchor_total_valid_parts": float(total_valid),
+    }
 
 
 # -----------------------------------------------------------------------------
@@ -281,15 +368,19 @@ def do_train_gw(
 
     gw_max_iter = int(train_cfg.get("gw_max_iter", 20))
     gw_restarts = int(train_cfg.get("gw_restarts", 50))
-
     min_proto_count = int(train_cfg.get("min_proto_count", 1))
+
     num_parts_cfg = train_cfg.get("num_parts", None)
     num_parts = infer_num_parts(train_dataset) if num_parts_cfg is None else int(num_parts_cfg)
-    stage2_visual_source = str(train_cfg.get("stage2_visual_source", "anchor")).lower()
 
+    stage2_visual_source = str(train_cfg.get("stage2_visual_source", "anchor")).lower()
     audit_anchor_every = int(train_cfg.get("audit_anchor_every", 0))
     audit_structure_every = int(train_cfg.get("audit_structure_every", 1))
     gw_only_steps_per_epoch = int(train_cfg.get("gw_only_steps_per_epoch", 1))
+
+    # Direct before/after anchor audit can be disabled from yaml if needed.
+    audit_anchor_before_after = bool(train_cfg.get("audit_anchor_before_after", True))
+
     gw_only_mode = lambda_obj <= 0.0
 
     print(
@@ -297,7 +388,8 @@ def do_train_gw(
         f"lambda_obj={lambda_obj}, lambda_gw={lambda_gw}, lambda_struct={lambda_struct}, "
         f"gw_max_iter={gw_max_iter}, gw_restarts={gw_restarts}, "
         f"visual_source={stage2_visual_source}, gw_only_mode={gw_only_mode}, "
-        f"steps_per_epoch={gw_only_steps_per_epoch}, min_proto_count={min_proto_count}"
+        f"steps_per_epoch={gw_only_steps_per_epoch}, min_proto_count={min_proto_count}, "
+        f"audit_anchor_before_after={audit_anchor_before_after}"
     )
 
     train_loader = DataLoader(
@@ -309,6 +401,7 @@ def do_train_gw(
         pin_memory=True,
         persistent_workers=num_workers > 0,
     )
+
     val_loader = DataLoader(
         val_dataset,
         batch_size=batch_size,
@@ -348,6 +441,20 @@ def do_train_gw(
         patch_temperature=patch_temperature,
         em_iters=em_iters,
     )
+
+    anchor_before = None
+    if audit_anchor_before_after:
+        print("[Stage3-GW] Anchor hit rate BEFORE GW training:")
+        anchor_before = eval_anchor_hit_rate_direct(
+            model=model,
+            dataloader=val_loader,
+            obj_ltype=obj_ltype,
+            obj_margin=obj_margin,
+            obj_max_violation=obj_max_violation,
+            patch_temperature=patch_temperature,
+            em_iters=em_iters,
+            desc="anchor-before-gw",
+        )
 
     if optimizer_name == "Adam":
         optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -430,6 +537,29 @@ def do_train_gw(
             f"val_total={val_metrics.get('total', float('nan')):.4f}, "
             f"val_gw={val_metrics.get('gw', float('nan')):.4f}, "
             f"val_struct={val_metrics.get('struct', float('nan')):.6f}"
+        )
+
+    if audit_anchor_before_after:
+        print("[Stage3-GW] Anchor hit rate AFTER GW training:")
+        anchor_after = eval_anchor_hit_rate_direct(
+            model=model,
+            dataloader=val_loader,
+            obj_ltype=obj_ltype,
+            obj_margin=obj_margin,
+            obj_max_violation=obj_max_violation,
+            patch_temperature=patch_temperature,
+            em_iters=em_iters,
+            desc="anchor-after-gw",
+        )
+
+        before_rate = anchor_before["anchor_hit_rate"] if anchor_before is not None else float("nan")
+        after_rate = anchor_after["anchor_hit_rate"]
+        delta = after_rate - before_rate
+
+        print(
+            "[Stage3-GW] Anchor hit delta: "
+            f"{before_rate:.6f} -> {after_rate:.6f} "
+            f"delta={delta:+.6f}"
         )
 
     return model, train_history, val_history

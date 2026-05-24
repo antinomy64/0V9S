@@ -108,6 +108,74 @@ def structure_retrieval_metric(feat_1: torch.Tensor, feat_2: torch.Tensor) -> to
 # Stage2 visual prototype construction
 # -----------------------------------------------------------------------------
 
+@torch.no_grad()
+def build_gtmask_visual_prototypes(
+    dataloader,
+    num_parts: int,
+    device: torch.device,
+) -> Dict[str, torch.Tensor]:
+    """
+    Build GT-mask averaged visual prototypes.
+
+    For each valid part instance:
+        local_proto = mean(raw cropaug_patch_tokens inside part_gt_mask_patch)
+    Then average local_proto by global part id.
+
+    Important:
+      - This is an oracle/debug visual source.
+      - Do NOT use it as a final no-GT training setting.
+      - Patch tokens are averaged before normalization.
+      - Final global prototypes are normalized once.
+    """
+    proto_sum = None
+    proto_count = torch.zeros(num_parts, device=device)
+
+    for batch in tqdm(dataloader, total=len(dataloader), desc="Build GT-mask visual prototypes"):
+        batch = {
+            k: (v.to(device) if torch.is_tensor(v) else v)
+            for k, v in batch.items()
+        }
+
+        patch_tokens = batch["patch_tokens"].float()                 # [B, N, D]
+        part_masks = batch["part_gt_mask_patch"].bool()              # [B, K, N]
+        part_ids = batch["part_category_id"].long()                  # [B, K]
+        part_valid = batch["part_valid_mask"].bool()                 # [B, K]
+
+        if proto_sum is None:
+            proto_sum = torch.zeros(num_parts, patch_tokens.shape[-1], device=device)
+
+        B, K, _ = part_masks.shape
+        for b in range(B):
+            for k in range(K):
+                if not bool(part_valid[b, k]):
+                    continue
+
+                pid = int(part_ids[b, k].item())
+                if pid < 0 or pid >= num_parts:
+                    continue
+
+                mask = part_masks[b, k]
+                if int(mask.sum().item()) <= 0:
+                    continue
+
+                # Use raw patch token mean inside GT part mask.
+                local_proto = patch_tokens[b, mask].mean(dim=0)
+
+                proto_sum[pid] += local_proto
+                proto_count[pid] += 1.0
+
+    if proto_sum is None:
+        raise RuntimeError("No GT-mask visual prototype was accumulated.")
+
+    visual_proto = proto_sum / proto_count.clamp_min(1.0)[:, None]
+    visual_proto = safe_normalize(visual_proto, dim=-1)
+
+    return {
+        "visual_proto": visual_proto.detach(),
+        "proto_count": proto_count.detach(),
+        "visual_source": "gtmask",
+    }
+
 
 @torch.no_grad()
 def extract_z_part_from_batch(
@@ -195,8 +263,17 @@ def build_stage2_visual_prototypes(
     model.eval()
 
     visual_source = str(visual_source).lower()
-    if visual_source not in {"anchor", "zpart"}:
-        raise ValueError(f"visual_source must be 'anchor' or 'zpart', got {visual_source}")
+    if visual_source == "gtmask":
+        return build_gtmask_visual_prototypes(
+            dataloader=dataloader,
+            num_parts=num_parts,
+            device=device,
+        )
+
+    if visual_source not in {"zpart", "anchor"}:
+        raise ValueError(
+            f"visual_source must be 'zpart', 'anchor', or 'gtmask', got {visual_source}"
+        )
 
     proto_sum = None
     proto_count = torch.zeros(num_parts, device=device)
