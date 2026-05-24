@@ -10,6 +10,9 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import yaml
+import sys
+REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT))
 
 from src.voc116_part_coarse import COARSE_PART_CLASSES
 

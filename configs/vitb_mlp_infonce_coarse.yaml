@@ -1,0 +1,17 @@
+model:
+  act: null
+  hidden_layer: false
+  dino_embed_dim: 768
+train:
+  lr: 0.0001
+  ltype: infonce
+  num_epochs: 30
+  batch_size: 128
+  save_best_model: false
+  lambda_obj: 240
+  lambda_inst: 1.0
+  lambda_overlap: 20.0
+  lambda_spear: 40.0
+  num_parts: 58
+dataset:
+  min_obj_area_ratio: 0.0

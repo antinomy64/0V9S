@@ -120,7 +120,7 @@ class DinoClipJointDataset(Dataset):
             fine_ids = COARSE_ID_TO_FINE_IDS.get(int(part_id), [int(part_id)])
             binary = np.isin(mask, fine_ids).astype(np.uint8) * 255
         else:
-            binary = self._part_binary_mask(mask, int(part_id))
+            binary = (mask == int(part_id)).astype(np.uint8) * 255
         return binary
 
     def _compute_obj_area_ratio(self, seg_path: str, category_id: int) -> float:
@@ -165,8 +165,8 @@ class DinoClipJointDataset(Dataset):
 
     def _build_cropaug_part_mask_patch(self, obj_seg_path: str, part_id: int, crop_box_xyxy) -> torch.Tensor:
         part_seg_path = self._obj_to_part_seg_path(obj_seg_path)
-        mask = self._read_mask(part_seg_path)
-        binary = (mask == int(part_id)).astype(np.uint8) * 255
+        mask = self._read_mask(part_seg_path)        
+        binary = self._part_binary_mask(mask, int(part_id))
 
         if torch.is_tensor(crop_box_xyxy):
             crop_box_xyxy = crop_box_xyxy.tolist()
