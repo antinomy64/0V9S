@@ -1,0 +1,27 @@
+===== Stage2 exp2 =====
+Loading joint dataset...
+Joint dataset loaded!
+Built class_part_bank for 16 object classes
+Joint samples: 12224
+Skipped annotations due to missing fields: 0
+Skipped annotations due to small object area ratio (< 0.0): 0
+anchor hit rate: 0.11628364
+anchor hits: 11830 / 101734
+===== Stage2/base joint =====
+Loading joint dataset...
+Joint dataset loaded!
+Built class_part_bank for 16 object classes
+Joint samples: 12224
+Skipped annotations due to missing fields: 0
+Skipped annotations due to small object area ratio (< 0.0): 0
+anchor hit rate: 0.06573024
+anchor hits: 6687 / 101734
+===== Stage3-GW first =====
+Loading joint dataset...
+Joint dataset loaded!
+Built class_part_bank for 16 object classes
+Joint samples: 12224
+Skipped annotations due to missing fields: 0
+Skipped annotations due to small object area ratio (< 0.0): 0
+anchor hit rate: 0.06714569
+anchor hits: 6831 / 101734
