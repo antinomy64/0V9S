@@ -2,30 +2,25 @@
 # -*- coding: utf-8 -*-
 
 """
-Compute Spearman between raw text features T and GT-mask visual prototypes V.
+Compute four Spearman structure correlations:
 
-Object level:
-  Spearman( upper_tri(cos(raw object T)), upper_tri(cos(GT-mask object V)) )
+  raw feat spearman(part):  Spearman(upper_tri(cos(raw part T)), upper_tri(cos(GT-mask part V)))
+  raw feat spearman(obj):   Spearman(upper_tri(cos(raw obj  T)), upper_tri(cos(GT-mask obj  V)))
+  proj feat spearman(part): Spearman(upper_tri(cos(proj part T)), upper_tri(cos(GT-mask part V)))
+  proj feat spearman(obj):  Spearman(upper_tri(cos(proj obj  T)), upper_tri(cos(GT-mask obj  V)))
 
-Part level:
-  For each object category:
-  Spearman( upper_tri(cos(raw part T)), upper_tri(cos(GT-mask part V)) )
-
-Obj-part relation:
-  For each object category:
-  Spearman( cos(raw object T, raw part T_i), cos(GT-mask object V, GT-mask part V_i) )
+Only prints the four final results. It does not save CSV/JSON files.
 """
 
 from __future__ import annotations
 
 import argparse
-import csv
-import json
+import importlib
 import random
 import sys
-from collections import Counter, defaultdict
+from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 import numpy as np
 import torch
@@ -93,25 +88,6 @@ def spearman_rho(x: np.ndarray, y: np.ndarray) -> float:
     return float((rx * ry).sum() / denom)
 
 
-def pearson_corr(x: np.ndarray, y: np.ndarray) -> float:
-    x = np.asarray(x, dtype=np.float64)
-    y = np.asarray(y, dtype=np.float64)
-    if x.shape != y.shape:
-        raise ValueError(f"Shape mismatch: {x.shape} vs {y.shape}")
-    if x.size < 2:
-        return float("nan")
-    x = x - x.mean()
-    y = y - y.mean()
-    denom = np.sqrt((x ** 2).sum() * (y ** 2).sum())
-    if denom <= 1e-12:
-        return float("nan")
-    return float((x * y).sum() / denom)
-
-
-def mse_np(x: np.ndarray, y: np.ndarray) -> float:
-    return float(np.mean((np.asarray(x) - np.asarray(y)) ** 2))
-
-
 def mean_feat(xs: List[torch.Tensor]) -> torch.Tensor:
     return safe_normalize(torch.stack([x.float().cpu() for x in xs], dim=0).mean(dim=0), dim=-1)
 
@@ -141,32 +117,6 @@ def build_dataset(args, cfg):
     )
 
 
-def clean_name(x: Any) -> str:
-    return str(x).replace("\n", " ").strip()
-
-
-def collect_names_from_raw_pth(dataset_path: str) -> Tuple[Dict[int, str], Dict[Tuple[int, int], str]]:
-    cat_counter = defaultdict(Counter)
-    part_counter = defaultdict(Counter)
-    obj = torch.load(dataset_path, map_location="cpu")
-    anns = obj.get("annotations", []) if isinstance(obj, dict) else []
-
-    for ann in anns:
-        if "category_id" not in ann:
-            continue
-        cat = int(ann["category_id"])
-        cat_counter[cat][clean_name(ann.get("class_name", str(cat)))] += 1
-        part_ids = ann.get("part_category_id", []) or []
-        part_names = ann.get("part_class_name", []) or []
-        for i, pid in enumerate(part_ids):
-            if i < len(part_names):
-                part_counter[(cat, int(pid))][clean_name(part_names[i])] += 1
-
-    cat_names = {cat: ctr.most_common(1)[0][0] for cat, ctr in cat_counter.items()}
-    part_names = {key: ctr.most_common(1)[0][0] for key, ctr in part_counter.items()}
-    return cat_names, part_names
-
-
 @torch.no_grad()
 def collect_raw_text_and_gtmask_visual_prototypes(args, cfg, device):
     dataset = build_dataset(args, cfg)
@@ -184,7 +134,12 @@ def collect_raw_text_and_gtmask_visual_prototypes(args, cfg, device):
     part_text_bank = defaultdict(list)
     part_visual_bank = defaultdict(list)
 
-    for batch in tqdm(loader, total=len(loader), desc="collect raw T and GTmask V"):
+    for batch in tqdm(
+        loader,
+        total=len(loader),
+        desc="collect T and GT-mask V",
+        disable=not args.show_progress,
+    ):
         batch = {k: (v.to(device, non_blocking=True) if torch.is_tensor(v) else v) for k, v in batch.items()}
 
         cat_key = pick_key(batch, ["category_id", "obj_category_id"])
@@ -223,11 +178,12 @@ def collect_raw_text_and_gtmask_visual_prototypes(args, cfg, device):
                 if pid < 0 or pid >= int(args.num_parts):
                     continue
 
-                part_text_bank[(cat, pid)].append(part_text[b, k].detach().cpu())
+                part_key = (cat, pid)
+                part_text_bank[part_key].append(part_text[b, k].detach().cpu())
 
                 mask_idx = torch.nonzero(part_gt[b, k], as_tuple=False).squeeze(1)
                 if mask_idx.numel() > 0:
-                    part_visual_bank[(cat, pid)].append(patch_tokens[b, mask_idx].mean(dim=0).detach().cpu())
+                    part_visual_bank[part_key].append(patch_tokens[b, mask_idx].mean(dim=0).detach().cpu())
 
     return {
         "obj_text": {cat: mean_feat(xs) for cat, xs in obj_text_bank.items() if len(xs) > 0},
@@ -237,43 +193,71 @@ def collect_raw_text_and_gtmask_visual_prototypes(args, cfg, device):
     }
 
 
-def compute_graph_metrics(text_feats: torch.Tensor, visual_feats: torch.Tensor) -> Dict[str, float]:
+def compute_spearman_between_feature_graphs(text_feats: torch.Tensor, visual_feats: torch.Tensor) -> float:
     C_t = pairwise_cosine_sim(text_feats)
     C_v = pairwise_cosine_sim(visual_feats)
     vt = upper_tri_no_diag(C_t)
     vv = upper_tri_no_diag(C_v)
-    return {
-        "spearman": spearman_rho(vt, vv),
-        "pearson": pearson_corr(vt, vv),
-        "mse": mse_np(vt, vv),
-        "num_pairs": int(len(vt)),
-    }
+    return spearman_rho(vt, vv)
 
 
-def compute_obj_part_relation_metrics(
-    obj_text: torch.Tensor,
-    obj_visual: torch.Tensor,
-    part_text: torch.Tensor,
-    part_visual: torch.Tensor,
-) -> Dict[str, float]:
-    obj_text = safe_normalize(obj_text.float(), dim=-1)
-    obj_visual = safe_normalize(obj_visual.float(), dim=-1)
-    part_text = safe_normalize(part_text.float(), dim=-1)
-    part_visual = safe_normalize(part_visual.float(), dim=-1)
-    raw_scores = (part_text @ obj_text).detach().cpu().numpy().astype(np.float64)
-    visual_scores = (part_visual @ obj_visual).detach().cpu().numpy().astype(np.float64)
-    return {
-        "spearman": spearman_rho(raw_scores, visual_scores),
-        "pearson": pearson_corr(raw_scores, visual_scores),
-        "mse": mse_np(raw_scores, visual_scores),
-        "num_pairs": int(len(raw_scores)),
-    }
+def stack_common(feat_a: Dict[Any, torch.Tensor], feat_b: Dict[Any, torch.Tensor]):
+    keys = sorted(set(feat_a.keys()) & set(feat_b.keys()))
+    if len(keys) < 3:
+        raise ValueError(f"Need at least 3 common prototypes for stable Spearman, got {len(keys)}")
+    A = torch.stack([feat_a[k] for k in keys], dim=0)
+    B = torch.stack([feat_b[k] for k in keys], dim=0)
+    return keys, A, B
+
+
+def build_projector(args, cfg, device):
+    model_class_name = cfg.get("model", {}).get("model_class", "ProjectionLayer")
+    ModelClass = getattr(importlib.import_module("src.model"), model_class_name)
+    model = ModelClass.from_config(cfg["model"])
+
+    if args.init_weights:
+        ckpt = torch.load(args.init_weights, map_location="cpu")
+        if isinstance(ckpt, dict) and "state_dict" in ckpt:
+            ckpt = ckpt["state_dict"]
+        if isinstance(ckpt, dict):
+            ckpt = {k.replace("module.", "", 1): v for k, v in ckpt.items()}
+        model.load_state_dict(ckpt, strict=False)
+
+    model.to(device)
+    model.eval()
+    if not hasattr(model, "project_clip_txt"):
+        raise AttributeError(
+            f"{model_class_name} has no project_clip_txt(textual_embedding). "
+            "This script expects ProjectionLayer/DoubleMLP-style text projector."
+        )
+    return model
+
+
+@torch.no_grad()
+def project_feature_dict(model, feat_dict: Dict[Any, torch.Tensor], device, batch_size: int) -> Dict[Any, torch.Tensor]:
+    keys = list(feat_dict.keys())
+    out = {}
+    for start in range(0, len(keys), batch_size):
+        chunk_keys = keys[start:start + batch_size]
+        x = torch.stack([feat_dict[k] for k in chunk_keys], dim=0).to(device)
+        try:
+            z = model.project_clip_txt(x)
+        except TypeError as e:
+            raise TypeError(
+                "model.project_clip_txt must accept one tensor argument. "
+                "Use ProjectionLayer/DoubleMLP checkpoints for this script."
+            ) from e
+        z = safe_normalize(z.float(), dim=-1).detach().cpu()
+        for k, v in zip(chunk_keys, z):
+            out[k] = v
+    return out
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_config", required=True)
     parser.add_argument("--dataset", required=True)
+    parser.add_argument("--init_weights", default="", help="Projector checkpoint for projected text features")
 
     parser.add_argument("--obj_feature_name", default="avg_self_attn_out")
     parser.add_argument("--part_feature_name", default="cropaug_patch_tokens")
@@ -289,8 +273,9 @@ def main():
     parser.add_argument("--batch_size", type=int, default=None)
     parser.add_argument("--num_workers", type=int, default=8)
     parser.add_argument("--num_parts", type=int, default=116)
-    parser.add_argument("--save_dir", default="audits/rawT_vs_gtmaskV_spearman")
+    parser.add_argument("--project_batch_size", type=int, default=4096)
     parser.add_argument("--device", default="cuda")
+    parser.add_argument("--show_progress", action="store_true", default=False)
     args = parser.parse_args()
 
     with open(args.model_config, "r", encoding="utf-8") as f:
@@ -302,9 +287,7 @@ def main():
 
     set_seed(0)
     device = torch.device(args.device if torch.cuda.is_available() and args.device.startswith("cuda") else "cpu")
-    print("[device]", device)
 
-    cat_names, part_names = collect_names_from_raw_pth(args.dataset)
     protos = collect_raw_text_and_gtmask_visual_prototypes(args, cfg, device)
 
     obj_text = protos["obj_text"]
@@ -312,151 +295,25 @@ def main():
     part_text = protos["part_text"]
     part_visual = protos["part_visual"]
 
-    save_dir = Path(args.save_dir)
-    save_dir.mkdir(parents=True, exist_ok=True)
+    _, raw_obj_T, obj_V = stack_common(obj_text, obj_visual)
+    _, raw_part_T, part_V = stack_common(part_text, part_visual)
 
-    common_obj_cats = sorted(set(obj_text.keys()) & set(obj_visual.keys()))
-    obj_T = torch.stack([obj_text[c] for c in common_obj_cats], dim=0)
-    obj_V = torch.stack([obj_visual[c] for c in common_obj_cats], dim=0)
-    obj_graph = compute_graph_metrics(obj_T, obj_V)
+    model = build_projector(args, cfg, device)
+    proj_obj_text = project_feature_dict(model, obj_text, device, args.project_batch_size)
+    proj_part_text = project_feature_dict(model, part_text, device, args.project_batch_size)
 
-    rows = []
-    weighted_part_spear = 0.0
-    weighted_part_pearson = 0.0
-    weighted_part_mse = 0.0
-    weighted_part_pairs = 0
+    _, proj_obj_T, obj_V_for_proj = stack_common(proj_obj_text, obj_visual)
+    _, proj_part_T, part_V_for_proj = stack_common(proj_part_text, part_visual)
 
-    weighted_objrel_spear = 0.0
-    weighted_objrel_pearson = 0.0
-    weighted_objrel_mse = 0.0
-    weighted_objrel_pairs = 0
+    raw_part_spear = compute_spearman_between_feature_graphs(raw_part_T, part_V)
+    raw_obj_spear = compute_spearman_between_feature_graphs(raw_obj_T, obj_V)
+    proj_part_spear = compute_spearman_between_feature_graphs(proj_part_T, part_V_for_proj)
+    proj_obj_spear = compute_spearman_between_feature_graphs(proj_obj_T, obj_V_for_proj)
 
-    cats_for_parts = sorted({cat for cat, _ in part_text.keys()} & {cat for cat, _ in part_visual.keys()})
-    for cat in cats_for_parts:
-        pids = sorted(
-            {pid for c, pid in part_text.keys() if c == cat}
-            & {pid for c, pid in part_visual.keys() if c == cat}
-        )
-        if len(pids) < 2:
-            continue
-
-        T = torch.stack([part_text[(cat, pid)] for pid in pids], dim=0)
-        V = torch.stack([part_visual[(cat, pid)] for pid in pids], dim=0)
-
-        if len(pids) >= 3:
-            part_graph = compute_graph_metrics(T, V)
-        else:
-            part_graph = {"spearman": float("nan"), "pearson": float("nan"), "mse": float("nan"), "num_pairs": 1}
-
-        if cat in obj_text and cat in obj_visual:
-            objrel = compute_obj_part_relation_metrics(obj_text[cat], obj_visual[cat], T, V)
-        else:
-            objrel = {"spearman": float("nan"), "pearson": float("nan"), "mse": float("nan"), "num_pairs": len(pids)}
-
-        rows.append({
-            "category_id": cat,
-            "class_name": cat_names.get(cat, str(cat)),
-            "num_parts": len(pids),
-            "part_ids": " ".join(str(x) for x in pids),
-            "part_names": " | ".join(part_names.get((cat, pid), f"part_{pid}") for pid in pids),
-            "part_graph_spearman": part_graph["spearman"],
-            "part_graph_pearson": part_graph["pearson"],
-            "part_graph_mse": part_graph["mse"],
-            "part_graph_num_pairs": part_graph["num_pairs"],
-            "obj_part_relation_spearman": objrel["spearman"],
-            "obj_part_relation_pearson": objrel["pearson"],
-            "obj_part_relation_mse": objrel["mse"],
-            "obj_part_relation_num_pairs": objrel["num_pairs"],
-        })
-
-        if not np.isnan(part_graph["spearman"]):
-            n = int(part_graph["num_pairs"])
-            weighted_part_spear += part_graph["spearman"] * n
-            weighted_part_pearson += part_graph["pearson"] * n
-            weighted_part_mse += part_graph["mse"] * n
-            weighted_part_pairs += n
-
-        if not np.isnan(objrel["spearman"]):
-            n = int(objrel["num_pairs"])
-            weighted_objrel_spear += objrel["spearman"] * n
-            weighted_objrel_pearson += objrel["pearson"] * n
-            weighted_objrel_mse += objrel["mse"] * n
-            weighted_objrel_pairs += n
-
-    part_summary = {
-        "weighted_part_graph_spearman": weighted_part_spear / max(weighted_part_pairs, 1),
-        "weighted_part_graph_pearson": weighted_part_pearson / max(weighted_part_pairs, 1),
-        "weighted_part_graph_mse": weighted_part_mse / max(weighted_part_pairs, 1),
-        "weighted_part_graph_pairs": weighted_part_pairs,
-        "weighted_obj_part_relation_spearman": weighted_objrel_spear / max(weighted_objrel_pairs, 1),
-        "weighted_obj_part_relation_pearson": weighted_objrel_pearson / max(weighted_objrel_pairs, 1),
-        "weighted_obj_part_relation_mse": weighted_objrel_mse / max(weighted_objrel_pairs, 1),
-        "weighted_obj_part_relation_pairs": weighted_objrel_pairs,
-    }
-
-    csv_path = save_dir / "rawT_vs_gtmaskV_part_level_by_category.csv"
-    fieldnames = [
-        "category_id",
-        "class_name",
-        "num_parts",
-        "part_ids",
-        "part_names",
-        "part_graph_spearman",
-        "part_graph_pearson",
-        "part_graph_mse",
-        "part_graph_num_pairs",
-        "obj_part_relation_spearman",
-        "obj_part_relation_pearson",
-        "obj_part_relation_mse",
-        "obj_part_relation_num_pairs",
-    ]
-    with csv_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-
-    summary = {
-        "dataset": args.dataset,
-        "model_config": args.model_config,
-        "object_level": {
-            "num_object_classes": len(common_obj_cats),
-            "category_ids": common_obj_cats,
-            "spearman": obj_graph["spearman"],
-            "pearson": obj_graph["pearson"],
-            "mse": obj_graph["mse"],
-            "num_pairs": obj_graph["num_pairs"],
-        },
-        "part_level": part_summary,
-        "num_part_categories": len(rows),
-        "csv": str(csv_path),
-    }
-    summary_path = save_dir / "summary.json"
-    summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
-
-    print("=" * 120)
-    print("[OBJECT LEVEL] raw object T graph vs GT-mask object V graph")
-    print(f"classes={len(common_obj_cats)} pairs={obj_graph['num_pairs']}")
-    print(f"spearman={obj_graph['spearman']:.8f} pearson={obj_graph['pearson']:.8f} mse={obj_graph['mse']:.8e}")
-    print("-" * 120)
-    print("[PART LEVEL] raw part T graph vs GT-mask part V graph")
-    print(f"categories={len(rows)} pairs={part_summary['weighted_part_graph_pairs']}")
-    print(
-        f"weighted spearman={part_summary['weighted_part_graph_spearman']:.8f} "
-        f"pearson={part_summary['weighted_part_graph_pearson']:.8f} "
-        f"mse={part_summary['weighted_part_graph_mse']:.8e}"
-    )
-    print("-" * 120)
-    print("[OBJ-PART RELATION] raw obj-to-part relation vs GT-mask obj-to-part relation")
-    print(f"pairs={part_summary['weighted_obj_part_relation_pairs']}")
-    print(
-        f"weighted spearman={part_summary['weighted_obj_part_relation_spearman']:.8f} "
-        f"pearson={part_summary['weighted_obj_part_relation_pearson']:.8f} "
-        f"mse={part_summary['weighted_obj_part_relation_mse']:.8e}"
-    )
-    print("-" * 120)
-    print(f"[saved csv] {csv_path}")
-    print(f"[saved summary] {summary_path}")
-    print("=" * 120)
+    print(f"raw feat spearman(part): {raw_part_spear:.8f}")
+    print(f"raw feat spearman(obj): {raw_obj_spear:.8f}")
+    print(f"proj feat spearman(part): {proj_part_spear:.8f}")
+    print(f"proj feat spearman(obj): {proj_obj_spear:.8f}")
 
 
 if __name__ == "__main__":
