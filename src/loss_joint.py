@@ -20,6 +20,7 @@ class JointObjPartLoss(nn.Module):
         patch_temperature: float = 0.07,
         eps: float = 1e-6,
         em_iters: int = 3,
+        present_only_anchor: bool = False,
     ):
         super().__init__()
         self.sim_model = sim_model
@@ -37,6 +38,8 @@ class JointObjPartLoss(nn.Module):
         self.patch_temperature = patch_temperature
         self.eps = eps
         self.em_iters = int(em_iters)
+        self.present_only_anchor = bool(present_only_anchor)
+        self.oracle_present_only_anchor = bool(present_only_anchor)
 
     def _safe_normalize(self, x, dim=-1):
         return x / x.norm(dim=dim, keepdim=True).clamp_min(self.eps)
@@ -46,9 +49,26 @@ class JointObjPartLoss(nn.Module):
         patch_tokens = batch["patch_tokens"]
         obj_text_feat = batch["obj_text_feat"]
         part_text_feat = batch["part_text_feat"]
-        obj_mask_patch = batch["obj_mask_patch"]
-        part_valid_mask = batch["part_valid_mask"]
-        part_gt_mask_patch = batch["part_gt_mask_patch"]
+        obj_mask_patch = batch["obj_mask_patch"].bool()
+        part_valid_mask = batch["part_valid_mask"].bool()
+        part_gt_mask_patch = batch["part_gt_mask_patch"].bool()
+
+        # Oracle present-only anchor ablation.
+        #
+        # Original Stage2 behavior:
+        #   all candidate parts of this object class participate in anchor mining.
+        #
+        # Present-only behavior:
+        #   only parts whose GT mask is non-empty in the current cropped object
+        #   image participate in anchor mining and pseudo part losses.
+        #
+        # This is an oracle diagnostic ablation because it uses GT part masks
+        # during training.
+        if getattr(self, "present_only_anchor", False) or getattr(self, "oracle_present_only_anchor", False):
+            part_present_mask = (part_gt_mask_patch & obj_mask_patch[:, None, :]).sum(dim=-1) > 0
+            part_anchor_mask = part_valid_mask & part_present_mask
+        else:
+            part_anchor_mask = part_valid_mask
 
         obj_loss = self.obj_criterion(
             obj_feat,
@@ -62,7 +82,7 @@ class JointObjPartLoss(nn.Module):
 
         zero = obj_loss.new_tensor(0.0)
 
-        if part_text_feat.shape[1] == 0 or not part_valid_mask.any():
+        if part_text_feat.shape[1] == 0 or not part_anchor_mask.any():
             total = self.lambda_obj * obj_loss
             return {
                 "total": total,
@@ -90,18 +110,18 @@ class JointObjPartLoss(nn.Module):
             patch_tokens=patch_tokens,
             abs_logits=abs_logits,
             obj_mask_patch=obj_mask_patch,
-            part_valid_mask=part_valid_mask,
+            part_valid_mask=part_anchor_mask,
             part_gt_mask_patch=part_gt_mask_patch,
             num_iters=self.em_iters,
         )
 
-        inst_loss = self._instance_consistency_loss(part_proj, z_part, part_valid_mask)
+        inst_loss = self._instance_consistency_loss(part_proj, z_part, part_anchor_mask)
 
         overlap_loss = (
             self._soft_part_overlap_loss(
                 abs_logits=abs_logits,
                 obj_mask_patch=obj_mask_patch,
-                part_valid_mask=part_valid_mask,
+                part_valid_mask=part_anchor_mask,
             )
             if self.lambda_overlap > 0
             else zero
@@ -116,7 +136,7 @@ class JointObjPartLoss(nn.Module):
                 part_text_feat=part_text_feat,
                 obj_proj=obj_proj,
                 part_proj=part_proj,
-                part_valid_mask=part_valid_mask,
+                part_valid_mask=part_anchor_mask,
             )
             if self.lambda_spear > 0
             else zero

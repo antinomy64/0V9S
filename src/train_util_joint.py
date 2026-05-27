@@ -287,6 +287,9 @@ def do_train_joint(
     topk_ratio = train_cfg.get('topk_ratio', 0.1)
     patch_temperature = train_cfg.get('patch_temperature', 0.07)
     em_iters = int(train_cfg.get('em_iters', 3))
+    present_only_anchor = bool(
+        train_cfg.get('present_only_anchor', train_cfg.get('oracle_present_only_anchor', False))
+    )
 
     if not eval_proj_name:
         raise ValueError("eval_proj_name must be provided for mIoU evaluation.")
@@ -300,8 +303,14 @@ def do_train_joint(
         f"lambda_overlap={lambda_overlap}, "
         f"lambda_spear={lambda_spear}, "
         f"em_iters={em_iters}, "
+        f"present_only_anchor={present_only_anchor}, "
         f"min_obj_area_ratio={getattr(train_dataset, 'min_obj_area_ratio', 0.0)}"
     )
+    if present_only_anchor:
+        print(
+            "[oracle] present_only_anchor=True: only GT-present parts are used "
+            "for Stage2 anchor / pseudo part losses."
+        )
 
     train_dataloader = DataLoader(
         train_dataset,
@@ -331,6 +340,8 @@ def do_train_joint(
         patch_temperature=patch_temperature,
         em_iters=em_iters,
     )
+    criterion.present_only_anchor = present_only_anchor
+    criterion.oracle_present_only_anchor = present_only_anchor
 
     if optimizer_name == "Adam":
         optimizer = optim.Adam(model.parameters(), lr=lr)
