@@ -7,7 +7,7 @@ import torch
 import yaml
 
 from src.dataset_joint import DinoClipJointDataset
-from src.train_util_joint_global import do_train_joint_epoch_pool
+from src.train_util_joint_epoch_pool import do_train_joint_epoch_pool
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
