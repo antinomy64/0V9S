@@ -384,6 +384,27 @@ def build_pseudo_pid_map(
     return pseudo_pid
 
 
+@torch.no_grad()
+def build_gt_pid_map(
+    obj_mask_patch_b: torch.Tensor,
+    part_valid_mask_b: torch.Tensor,
+    part_ids_b: torch.Tensor,
+    part_gt_mask_patch_b: torch.Tensor,
+) -> Optional[torch.Tensor]:
+    """Build a GT part-id map on the same crop/grid as Stage2 pseudo labels."""
+    valid_part_idx = torch.nonzero(part_valid_mask_b, as_tuple=False).squeeze(1)
+    if valid_part_idx.numel() == 0:
+        return None
+
+    gt_pid = torch.full((obj_mask_patch_b.numel(),), -1, dtype=torch.long, device=part_ids_b.device)
+    for pidx in valid_part_idx.tolist():
+        pid = int(part_ids_b[pidx].item())
+        mask = part_gt_mask_patch_b[pidx].bool() & obj_mask_patch_b.bool()
+        if mask.any():
+            gt_pid[mask] = pid
+    return gt_pid
+
+
 def color_for_pid(pid: int) -> np.ndarray:
     rng = np.random.default_rng(seed=int(pid) * 1009 + 17)
     return rng.integers(40, 235, size=3).astype(np.float32)
@@ -432,6 +453,33 @@ def overlay_pseudo(
             draw.ellipse((cx - r, cy - r, cx + r, cy + r), outline=(0, 0, 0), width=max(1, r // 2))
 
     return out
+
+
+def compose_gt_and_pseudo_views(
+    gt_img: Image.Image,
+    pseudo_img: Image.Image,
+) -> Image.Image:
+    """Place GT-mask overlay on the left and pseudo/anchor view in the middle.
+
+    The legend is still appended on the right by add_legend().
+    """
+    try:
+        font = ImageFont.load_default()
+    except Exception:
+        font = None
+
+    gap = 12
+    title_h = 24
+    W = gt_img.width + pseudo_img.width + gap
+    H = max(gt_img.height, pseudo_img.height) + title_h
+    canvas = Image.new("RGB", (W, H), (255, 255, 255))
+    canvas.paste(gt_img, (0, title_h))
+    canvas.paste(pseudo_img, (gt_img.width + gap, title_h))
+
+    draw = ImageDraw.Draw(canvas)
+    draw.text((6, 4), "GT mask overlay", fill=(0, 0, 0), font=font)
+    draw.text((gt_img.width + gap + 6, 4), "Anchor + pseudo label", fill=(0, 0, 0), font=font)
+    return canvas
 
 
 def add_legend(
@@ -656,7 +704,22 @@ def main():
                 skipped_no_pseudo += 1
                 continue
 
-            overlay = overlay_pseudo(
+            gt_pid = build_gt_pid_map(
+                obj_mask_patch_b=stage2["obj_mask_patch"][b],
+                part_valid_mask_b=stage2["part_anchor_mask"][b],
+                part_ids_b=part_ids,
+                part_gt_mask_patch_b=batch["part_gt_mask_patch"][b],
+            )
+            gt_overlay = overlay_pseudo(
+                base_img=base_img,
+                pseudo_pid=gt_pid if gt_pid is not None else pseudo_pid,
+                grid_size=grid_size,
+                alpha=float(args.alpha),
+                anchor_idx=None,
+                draw_anchor=False,
+            )
+
+            pseudo_overlay = overlay_pseudo(
                 base_img=base_img,
                 pseudo_pid=pseudo_pid,
                 grid_size=grid_size,
@@ -664,8 +727,9 @@ def main():
                 anchor_idx=anchor_idx[b],
                 draw_anchor=not bool(args.no_anchor),
             )
+            composed = compose_gt_and_pseudo_views(gt_overlay, pseudo_overlay)
             overlay = add_legend(
-                img=overlay,
+                img=composed,
                 meta=meta,
                 part_ids=part_ids,
                 part_anchor_mask=stage2["part_anchor_mask"][b],

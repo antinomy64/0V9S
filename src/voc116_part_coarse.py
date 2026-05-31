@@ -56,7 +56,8 @@ COARSE_PART_GROUPS: Dict[str, List[str]] = {
     "bird's tail": ["bird's tail"],
     "bird's leg": ["bird's leg", "bird's foot"],
 
-    "bottle's body": ["bottle's body", "bottle's cap"],
+    "bottle's body": ["bottle's body"],
+    "bottle's cap": ["bottle's cap"],
 
     "bus's wheel": ["bus's wheel"],
     "bus's front": ["bus's front", "bus's headlight", "bus's license plate"],
