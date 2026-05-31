@@ -7,13 +7,13 @@ import torch
 import yaml
 
 from src.dataset_joint import DinoClipJointDataset
-from src.train_util_joint_epoch_pool import do_train_joint_epoch_pool
+from src.train_util_joint_epoch_part_min import do_train_joint_epoch_part
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-def train_and_eval_joint_epoch_pool(
+def train_and_eval_joint_epoch_part(
     config_file,
     train_dataset,
     val_dataset,
@@ -59,7 +59,7 @@ def train_and_eval_joint_epoch_pool(
 
     print(model)
 
-    model, train_history, val_history = do_train_joint_epoch_pool(
+    model, train_history, val_history = do_train_joint_epoch_part(
         model,
         train_dataset,
         val_dataset,
@@ -160,7 +160,7 @@ if __name__ == '__main__':
         min_obj_area_ratio=0.0,
     )
 
-    train_and_eval_joint_epoch_pool(
+    train_and_eval_joint_epoch_part(
         args.model_config,
         train_dataset,
         val_dataset,
