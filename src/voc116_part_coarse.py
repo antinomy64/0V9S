@@ -40,7 +40,7 @@ FINE_PART_CLASSES = (
 FINE_PART_NAME_TO_ID = {name: i for i, name in enumerate(FINE_PART_CLASSES)}
 
 # Conservative parent-level grouping: tiny parts -> immediate parent part.
-# Total coarse classes: 58.
+# Total coarse classes: 59.
 COARSE_PART_GROUPS: Dict[str, List[str]] = {
     "aeroplane's body": ["aeroplane's body", "aeroplane's engine", "aeroplane's wheel"],
     "aeroplane's wing": ["aeroplane's wing"],
@@ -146,7 +146,7 @@ for fine_id, coarse_id in FINE_ID_TO_COARSE_ID.items():
 FINE_TO_COARSE_LUT[255] = 255
 
 
-# Palette copied/generated in the same Pascal VOC style; length >= 58.
+# Palette copied/generated in the same Pascal VOC style; length >= 59.
 def _voc_palette(n=256):
     palette = []
     for j in range(n):

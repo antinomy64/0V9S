@@ -9,6 +9,7 @@ import torch
 import yaml
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import torch.nn.functional as F
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
@@ -19,7 +20,7 @@ from src.voc116_part_coarse import COARSE_PART_CLASSES, FINE_PART_CLASSES
 
 
 def get_part_names(num_parts: int) -> List[str]:
-    if num_parts == 58:
+    if num_parts == 59:
         return list(COARSE_PART_CLASSES)
     if num_parts == 116:
         return list(FINE_PART_CLASSES)
@@ -37,6 +38,39 @@ def cat_or_empty(chunks: List[torch.Tensor], shape, dtype=torch.float32) -> torc
     if len(chunks) == 0:
         return torch.empty(shape, dtype=dtype)
     return torch.cat(chunks, dim=0)
+
+def mean_features_by_part(
+    features_by_part: List[torch.Tensor],
+    dim: int,
+):
+    """
+    Args:
+        features_by_part:
+            list length P. features_by_part[pid] is [n_pid, dim].
+
+    Returns:
+        mean_feat: [P, dim], L2-normalized mean feature. Empty part is zero.
+        valid:     [P], bool.
+        count:     [P], long.
+    """
+    means = []
+    valid = []
+    counts = []
+
+    for x in features_by_part:
+        if x is None or x.numel() == 0:
+            means.append(torch.zeros(dim, dtype=torch.float32))
+            valid.append(False)
+            counts.append(0)
+        else:
+            x = x.float()
+            m = x.mean(dim=0)
+            m = F.normalize(m[None, :], dim=-1).squeeze(0)
+            means.append(m.cpu())
+            valid.append(True)
+            counts.append(int(x.shape[0]))
+
+    return torch.stack(means, dim=0), torch.tensor(valid, dtype=torch.bool), torch.tensor(counts, dtype=torch.long)
 
 
 class FeatureAnalyser:
@@ -70,7 +104,7 @@ class FeatureAnalyser:
         patch_size: int = 14,
         batch_size: int = 64,
         num_workers: int = 0,
-        num_parts: int = 58,
+        num_parts: int = 59,
         device: str = "cuda",
         show_progress: bool = True,
     ):
@@ -358,7 +392,6 @@ class FeatureAnalyser:
 
         return obj_text_raw_by_category, obj_text_proj_by_category, part_text_raw_by_part, part_text_proj_by_part
 
-
 class DatasetAnalyser:
     """
     Lightweight dataset statistics analyser.
@@ -392,7 +425,7 @@ class DatasetAnalyser:
         patch_size: int = 14,
         batch_size: int = 128,
         num_workers: int = 0,
-        num_parts: int = 58,
+        num_parts: int = 59,
         device: str = "cuda",
         show_progress: bool = True,
         min_obj_area_ratio: float = 0.0,

@@ -17,7 +17,7 @@ train:
 
   patch_temperature: 0.07
   em_iters: 1
-  num_parts: 58
+  num_parts: 59
   min_proto_count: 1
 
   #   anchor = mean selected single anchor patch tokens by part id

@@ -17,6 +17,7 @@ sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from anlysis import FeatureAnalyser
+from anlysis import mean_features_by_part
 
 
 def obj_name_from_part_name(part_name: str) -> str:
@@ -26,40 +27,6 @@ def obj_name_from_part_name(part_name: str) -> str:
     if "’s " in part_name:
         return part_name.split("’s ", 1)[0]
     return "unknown"
-
-
-def mean_features_by_part(
-    features_by_part: List[torch.Tensor],
-    dim: int,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """
-    Args:
-        features_by_part:
-            list length P. features_by_part[pid] is [n_pid, dim].
-
-    Returns:
-        mean_feat: [P, dim], L2-normalized mean feature. Empty part is zero.
-        valid:     [P], bool.
-        count:     [P], long.
-    """
-    means = []
-    valid = []
-    counts = []
-
-    for x in features_by_part:
-        if x is None or x.numel() == 0:
-            means.append(torch.zeros(dim, dtype=torch.float32))
-            valid.append(False)
-            counts.append(0)
-        else:
-            x = x.float()
-            m = x.mean(dim=0)
-            m = F.normalize(m[None, :], dim=-1).squeeze(0)
-            means.append(m.cpu())
-            valid.append(True)
-            counts.append(int(x.shape[0]))
-
-    return torch.stack(means, dim=0), torch.tensor(valid, dtype=torch.bool), torch.tensor(counts, dtype=torch.long)
 
 
 @torch.no_grad()
