@@ -8,13 +8,13 @@ import torch
 import yaml
 
 from src.dataset_joint import DinoClipJointDataset
-from src.train_util_joint import do_train_joint
+from src.train_util_global import do_train
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-def train_and_eval_joint(
+def train_and_eval(
     config_file,
     train_dataset,
     val_dataset,
@@ -24,15 +24,6 @@ def train_and_eval_joint(
     warmup=0,
     name_pedix='',
     init_weights='',
-    miou_eval_script=None,
-    miou_eval_cfg=None,
-    miou_eval_base_cfg=None,
-    miou_result_dir="segmentation_results",
-    miou_result_json_name=None,
-    miou_bench_key=None,
-    miou_extra_opts=None,
-    miou_eval_port=29517,
-    present_only_anchor=False,
 ):
     out_dir = 'weights'
     os.makedirs(out_dir, exist_ok=True)
@@ -45,16 +36,6 @@ def train_and_eval_joint(
 
     with open(config_file, 'r') as f:
         config = yaml.safe_load(f)
-
-    config.setdefault('train', {})
-    if present_only_anchor:
-        config['train']['present_only_anchor'] = True
-        config['train']['oracle_present_only_anchor'] = True
-        print('[oracle] present_only_anchor=True: only GT-present parts should participate in Stage2 anchor/pseudo part losses.')
-    else:
-        config['train'].setdefault('present_only_anchor', False)
-        config['train'].setdefault('oracle_present_only_anchor', False)
-        print(f"[oracle] present_only_anchor={bool(config['train'].get('present_only_anchor', False) or config['train'].get('oracle_present_only_anchor', False))}")
 
     model_class_name = config['model'].get('model_class', 'ProjectionLayer')
     ModelClass = getattr(importlib.import_module('src.model'), model_class_name)
@@ -71,7 +52,7 @@ def train_and_eval_joint(
 
     print(model)
 
-    model, train_history, val_history = do_train_joint(
+    model, train_history, val_history = do_train(
         model,
         train_dataset,
         val_dataset,
@@ -80,16 +61,7 @@ def train_and_eval_joint(
         weight_decay=weight_decay,
         scheduler_name=scheduler,
         warmup=warmup,
-        eval_proj_class=proj_class,
         eval_proj_name=model_name,
-        miou_eval_script=miou_eval_script,
-        miou_eval_cfg=miou_eval_cfg,
-        miou_eval_base_cfg=miou_eval_base_cfg,
-        miou_result_dir=miou_result_dir,
-        miou_result_json_name=miou_result_json_name,
-        miou_bench_key=miou_bench_key,
-        miou_extra_opts=miou_extra_opts,
-        miou_eval_port=miou_eval_port,
     )
 
     torch.save(model.state_dict(), f"{out_path}.pth")
@@ -124,20 +96,7 @@ if __name__ == '__main__':
     parser.add_argument('--name_pedix', type=str, default='', help='String appended to output model name')
     parser.add_argument('--init_weights', type=str, default='', help='Path to existing projector checkpoint used to initialize finetuning')
 
-    parser.add_argument('--miou_eval_script', type=str, default='src/open_vocabulary_segmentation/main.py')
-    parser.add_argument('--miou_eval_cfg', type=str, required=True)
-    parser.add_argument('--miou_eval_base_cfg', type=str, required=True)
-    parser.add_argument('--miou_result_dir', type=str, default='segmentation_results')
-    parser.add_argument('--miou_result_json_name', type=str, default=None)
-    parser.add_argument('--miou_bench_key', type=str, default=None)
-    parser.add_argument('--miou_extra_opts', nargs='*', default=None, help='Extra opts appended after model.proj_name=...')
-    parser.add_argument("--miou_eval_port", type=int, default=29517)
-    parser.add_argument(
-        "--present_only_anchor",
-        action="store_true",
-        default=False,
-        help="Oracle Stage2 ablation: only GT-present parts in each crop participate in anchor/pseudo part losses.",
-    )
+    
 
     args = parser.parse_args()
 
@@ -178,7 +137,7 @@ if __name__ == '__main__':
         min_obj_area_ratio=0.0,
     )
 
-    train_and_eval_joint(
+    train_and_eval(
         args.model_config,
         train_dataset,
         val_dataset,
@@ -188,13 +147,4 @@ if __name__ == '__main__':
         warmup=args.warmup,
         name_pedix=args.name_pedix,
         init_weights=args.init_weights,
-        miou_eval_script=args.miou_eval_script,
-        miou_eval_cfg=args.miou_eval_cfg,
-        miou_eval_base_cfg=args.miou_eval_base_cfg,
-        miou_result_dir=args.miou_result_dir,
-        miou_result_json_name=args.miou_result_json_name,
-        miou_bench_key=args.miou_bench_key,
-        miou_extra_opts=args.miou_extra_opts,
-        miou_eval_port=args.miou_eval_port,
-        present_only_anchor=args.present_only_anchor,
     )

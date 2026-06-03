@@ -10,30 +10,9 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.transforms import InterpolationMode
 
-
-
-try:
-    from src.voc116_part_coarse import COARSE_ID_TO_FINE_IDS
-except Exception:
-    COARSE_ID_TO_FINE_IDS = {}
+from src.voc116_part_coarse import COARSE_ID_TO_FINE_IDS
 
 class DinoClipJointDataset(Dataset):
-    """
-    Joint object-level + part-level dataset with GT object mask and GT part masks on patch grid.
-
-    Returned keys:
-      - obj_feat: [Dv]
-      - patch_tokens: [N, Dv]
-      - obj_text_feat: [Dt]
-      - part_text_feat: [K, Dt]
-      - obj_mask_patch: [N] bool
-      - part_gt_mask_patch: [K, N] bool
-      - category_id: scalar
-      - part_category_id: [K]
-      - part_valid_mask is added by collate_fn
-      - metadata
-    """
-
     def __init__(
         self,
         features_file: str,

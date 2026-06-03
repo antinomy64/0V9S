@@ -2,17 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from src.loss import ContrastiveLoss
-
-
-class JointObjPartLoss(nn.Module):
+class PartLoss(nn.Module):
     def __init__(
         self,
         sim_model,
-        obj_ltype: str = "infonce",
-        obj_margin: float = 0.2,
-        obj_max_violation: bool = True,
-        lambda_obj: float = 1.0,
         lambda_inst: float = 0.2,
         lambda_overlap: float = 0.05,
         lambda_spear: float = 0.0,
@@ -24,13 +17,6 @@ class JointObjPartLoss(nn.Module):
     ):
         super().__init__()
         self.sim_model = sim_model
-        self.obj_criterion = ContrastiveLoss(
-            sim_model,
-            margin=int(obj_margin),
-            max_violation=obj_max_violation,
-            ltype=obj_ltype,
-        )
-        self.lambda_obj = lambda_obj
         self.lambda_inst = lambda_inst
         self.lambda_overlap = lambda_overlap
         self.lambda_spear = lambda_spear
@@ -44,7 +30,6 @@ class JointObjPartLoss(nn.Module):
         return x / x.norm(dim=dim, keepdim=True).clamp_min(self.eps)
 
     def forward(self, batch):
-        obj_feat = batch["obj_feat"]
         patch_tokens = batch["patch_tokens"]
         obj_text_feat = batch["obj_text_feat"]
         part_text_feat = batch["part_text_feat"]
@@ -52,36 +37,11 @@ class JointObjPartLoss(nn.Module):
         part_valid_mask = batch["part_valid_mask"].bool()
         part_gt_mask_patch = batch["part_gt_mask_patch"].bool()
 
-        if getattr(self, "present_only_anchor", False):
+        if self.present_only_anchor:
             part_present_mask = (part_gt_mask_patch & obj_mask_patch[:, None, :]).sum(dim=-1) > 0
             part_anchor_mask = part_valid_mask & part_present_mask
         else:
             part_anchor_mask = part_valid_mask
-
-        obj_loss = self.obj_criterion(
-            obj_feat,
-            obj_text_feat,
-            return_similarity_mat=False,
-            self_attn_maps=None,
-            cls=None,
-            text_input_mask=None,
-            text_argmax=None,
-        )
-
-        zero = obj_loss.new_tensor(0.0)
-
-        if part_text_feat.shape[1] == 0 or not part_anchor_mask.any():
-            total = self.lambda_obj * obj_loss
-            return {
-                "total": total,
-                "obj": obj_loss.detach(),
-                "inst": zero.detach(),
-                "overlap": zero.detach(),
-                "spear": zero.detach(),
-                "anchor_hit_rate": zero.detach(),
-                "anchor_total_valid_parts": zero.detach(),
-                "anchor_total_hits": zero.detach(),
-            }
 
         # Project text features into the same space as patch tokens.
         part_proj = self.sim_model.project_clip_txt(part_text_feat.float())   # [B, K, D]
@@ -94,44 +54,33 @@ class JointObjPartLoss(nn.Module):
         abs_logits = torch.einsum("bkd,bnd->bkn", part_proj, patch_tokens) / self.patch_temperature
         abs_logits = abs_logits.masked_fill(~obj_mask_patch[:, None, :], -1e4)
 
-        z_part, proto_part, anchor_metrics = self._anchor_proto_em_pool(
+        z_proto, _, anchor_metrics = self._anchor_proto_em_pool(
             patch_tokens=patch_tokens,
             abs_logits=abs_logits,
             obj_mask_patch=obj_mask_patch,
             part_valid_mask=part_anchor_mask,
             part_gt_mask_patch=part_gt_mask_patch,
             num_iters=self.em_iters,
+            return_anchor_tokens=False,
         )
 
-        inst_loss = self._instance_consistency_loss(part_proj, z_part, part_anchor_mask)
+        inst_loss = self._instance_consistency_loss(part_proj, z_proto, part_anchor_mask)
 
-        overlap_loss = (
-            self._soft_part_overlap_loss(
-                abs_logits=abs_logits,
-                obj_mask_patch=obj_mask_patch,
-                part_valid_mask=part_anchor_mask,
-            )
-            if self.lambda_overlap > 0
-            else zero
+        overlap_loss = self._soft_part_overlap_loss(
+            abs_logits=abs_logits,
+            obj_mask_patch=obj_mask_patch,
+            part_valid_mask=part_anchor_mask,
         )
 
-        # New structure-preserving "Spearman-style" loss:
-        #   1) keep the part-part text graph stable before/after projection
-        #   2) keep the part-obj relation stable before/after projection
-        spear_loss = (
-            self._combined_structure_spearman_surrogate_loss(
+        spear_loss = self._combined_structure_spearman_surrogate_loss(
                 obj_text_feat=obj_text_feat,
                 part_text_feat=part_text_feat,
                 obj_proj=obj_proj,
                 part_proj=part_proj,
                 part_valid_mask=part_anchor_mask,
             )
-            if self.lambda_spear > 0
-            else zero
-        )
 
         total = (
-            self.lambda_obj * obj_loss
             + self.lambda_inst * inst_loss
             + self.lambda_overlap * overlap_loss
             + self.lambda_spear * spear_loss
@@ -139,7 +88,6 @@ class JointObjPartLoss(nn.Module):
 
         return {
             "total": total,
-            "obj": obj_loss.detach(),
             "inst": inst_loss.detach(),
             "overlap": overlap_loss.detach(),
             "spear": spear_loss.detach(),
@@ -177,8 +125,8 @@ class JointObjPartLoss(nn.Module):
     ):
         B, K, N = abs_logits.shape
         D = patch_tokens.shape[-1]
-        z = patch_tokens.new_zeros((B, K, D))
-        proto_part = patch_tokens.new_zeros((B, K, D))
+        z_proto = patch_tokens.new_zeros((B, K, D))
+        z_center = patch_tokens.new_zeros((B, K, D))
 
         total_valid_parts = patch_tokens.new_tensor(0.0)
         total_anchor_hits = patch_tokens.new_tensor(0.0)
@@ -193,46 +141,48 @@ class JointObjPartLoss(nn.Module):
             if valid_part_idx.numel() == 0 or valid_patch_mask.sum() == 0:
                 continue
 
-            valid_patch_tokens = patch_tokens[b][valid_patch_mask]
-            local_scores = abs_logits[b][valid_part_idx][:, valid_patch_mask]
+            if bool(valid_patch_mask.all()):
+                valid_patch_tokens = patch_tokens[b]
+                local_scores = abs_logits[b, valid_part_idx]
+                gt_masks_local = part_gt_mask_patch[b, valid_part_idx]
+            else:
+                valid_patch_tokens = patch_tokens[b][valid_patch_mask]
+                local_scores = abs_logits[b][valid_part_idx][:, valid_patch_mask]
+                gt_masks_local = part_gt_mask_patch[b, valid_part_idx][:, valid_patch_mask]
 
             Kb, Mb = local_scores.shape
             if Mb == 0:
                 continue
 
             rel_scores = self._compute_relative_scores(local_scores)
-            flat_scores = rel_scores.reshape(-1)
-            sorted_idx = torch.argsort(flat_scores, descending=True)
+            neg_inf = torch.finfo(rel_scores.dtype).min
+            masked_scores = rel_scores.clone()
 
             anchor_idx_local = torch.full((Kb,), -1, dtype=torch.long, device=local_scores.device)
-            patch_taken = torch.zeros((Mb,), dtype=torch.bool, device=local_scores.device)
 
-            assigned_parts = 0
-            for flat_id in sorted_idx:
-                p_local = torch.div(flat_id, Mb, rounding_mode='floor')
+            for _ in range(Kb):
+                flat_id = masked_scores.reshape(-1).argmax()
+                p_local = torch.div(flat_id, Mb, rounding_mode="floor")
                 n_local = flat_id % Mb
 
-                if anchor_idx_local[p_local] != -1:
-                    continue
-                if patch_taken[n_local]:
-                    continue
+                if masked_scores[p_local, n_local] == neg_inf:
+                    break
 
                 anchor_idx_local[p_local] = n_local
-                patch_taken[n_local] = True
-                assigned_parts += 1
-                if assigned_parts == Kb:
-                    break
+
+                # delete selected row and column
+                masked_scores[p_local, :] = neg_inf
+                masked_scores[:, n_local] = neg_inf
 
             unassigned = torch.nonzero(anchor_idx_local < 0, as_tuple=False).squeeze(1)
             if unassigned.numel() > 0:
                 local_best = rel_scores.argmax(dim=1)
                 anchor_idx_local[unassigned] = local_best[unassigned]
 
-            valid_patch_idx_global = torch.nonzero(valid_patch_mask, as_tuple=False).squeeze(1)
-            anchor_idx_global = valid_patch_idx_global[anchor_idx_local]
-
-            gt_masks = part_gt_mask_patch[b, valid_part_idx]
-            hit_vec = gt_masks[torch.arange(Kb, device=gt_masks.device), anchor_idx_global]
+            hit_vec = gt_masks_local[
+                torch.arange(Kb, device=gt_masks_local.device),
+                anchor_idx_local,
+            ]
 
             total_valid_parts += float(Kb)
             total_anchor_hits += float(hit_vec.long().sum().item())
@@ -247,20 +197,18 @@ class JointObjPartLoss(nn.Module):
                 assign = assign_scores.argmax(dim=1)
                 assign[anchor_idx_local] = torch.arange(Kb, device=assign.device)
 
-                onehot = F.one_hot(assign, num_classes=Kb).float()
-                count = onehot.sum(dim=0).clamp_min(1.0)
-                proto_sum = onehot.T @ valid_patch_tokens
+                proto_sum = valid_patch_tokens.new_zeros((Kb, valid_patch_tokens.shape[-1]))
+                proto_sum.index_add_(0, assign, valid_patch_tokens)
+
+                count = torch.bincount(assign, minlength=Kb).to(valid_patch_tokens.dtype).clamp_min(1.0)
+
                 C = proto_sum / count[:, None]
                 C = self._safe_normalize(C, dim=-1)
 
-            region_onehot = F.one_hot(assign, num_classes=Kb).float()
-            region_count = region_onehot.sum(dim=0).clamp_min(1.0)
-            region_sum = region_onehot.T @ valid_patch_tokens
-            z_local = region_sum / region_count[:, None]
-            z_local = self._safe_normalize(z_local, dim=-1)
+            z_local = C
 
-            z[b, valid_part_idx] = z_local
-            proto_part[b, valid_part_idx] = C
+            z_center[b, valid_part_idx] = C
+            z_proto[b, valid_part_idx] = z_local
 
         hit_rate = total_anchor_hits / total_valid_parts.clamp_min(1.0)
         anchor_metrics = {
@@ -269,12 +217,12 @@ class JointObjPartLoss(nn.Module):
             "anchor_total_hits": total_anchor_hits,
         }
         if return_anchor_tokens:
-            return z, proto_part, anchor_metrics, anchor_tokens, anchor_valid
+            return z_proto, z_center, anchor_metrics, anchor_tokens, anchor_valid
 
-        return z, proto_part, anchor_metrics
+        return z_proto, z_center, anchor_metrics
 
-    def _instance_consistency_loss(self, part_proj, z_part, part_valid_mask):
-        cos = F.cosine_similarity(part_proj, z_part.detach(), dim=-1)
+    def _instance_consistency_loss(self, part_proj, z_proto, part_valid_mask):
+        cos = F.cosine_similarity(part_proj, z_proto.detach(), dim=-1)
         loss = 1.0 - cos
         return self._masked_mean(loss, part_valid_mask)
 

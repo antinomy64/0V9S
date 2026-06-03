@@ -287,9 +287,7 @@ def do_train_joint(
     topk_ratio = train_cfg.get('topk_ratio', 0.1)
     patch_temperature = train_cfg.get('patch_temperature', 0.07)
     em_iters = int(train_cfg.get('em_iters', 3))
-    present_only_anchor = bool(
-        train_cfg.get('present_only_anchor', train_cfg.get('oracle_present_only_anchor', False))
-    )
+    present_only_anchor = train_cfg.get('present_only_anchor', False)
 
     if not eval_proj_name:
         raise ValueError("eval_proj_name must be provided for mIoU evaluation.")
@@ -341,7 +339,6 @@ def do_train_joint(
         em_iters=em_iters,
     )
     criterion.present_only_anchor = present_only_anchor
-    criterion.oracle_present_only_anchor = present_only_anchor
 
     if optimizer_name == "Adam":
         optimizer = optim.Adam(model.parameters(), lr=lr)

@@ -1,0 +1,21 @@
+model:
+  act: null
+  hidden_layer: False
+  dino_embed_dim: 768
+
+train:
+  lr: 0.0001
+  num_epochs: 300
+  batch_size: 1
+  sample_patches_per_step: null
+  global_steps_per_epoch: null
+
+  lambda_inst: 1.0
+  lambda_overlap: 20.0
+  lambda_spear: 40.0
+
+  patch_temperature: 0.07
+  present_only_anchor: false
+
+dataset:
+  min_obj_area_ratio: 0.0

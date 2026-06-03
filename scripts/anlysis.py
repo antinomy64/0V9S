@@ -3,8 +3,7 @@ from __future__ import annotations
 import importlib
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
-
+from typing import Any, Dict, List, Optional
 import torch
 import yaml
 from torch.utils.data import DataLoader
@@ -14,6 +13,8 @@ import torch.nn.functional as F
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
+from collections import defaultdict
+from dataclasses import dataclass
 from src.dataset_joint import DinoClipJointDataset, joint_collate_fn
 from src.loss_joint import JointObjPartLoss
 from src.voc116_part_coarse import COARSE_PART_CLASSES, FINE_PART_CLASSES
@@ -590,3 +591,274 @@ class DatasetAnalyser:
         return self.compute_area_and_frequency(max_obj_slots=max_obj_slots)[
             "part_occurrence_freq_per_obj_crop"
         ]
+
+
+@dataclass
+class ObjectPatchTokenBankOutput:
+    patch_bank: torch.Tensor
+    patch_mask: torch.Tensor
+    num_patches: torch.Tensor
+    category_ids: torch.Tensor
+    class_names: List[str]
+
+
+class ObjectPatchTokenBankBuilder:
+    """
+    Build object-level global patch-token bank from DinoClipJointDataset.
+
+    It reads cropaug_patch_tokens from every object crop, groups patch tokens by object
+    category_id, and pads them into:
+
+        [num_obj, max_num_patch_token, dim]
+
+    By default, only object-mask-valid patches are kept:
+        patch_tokens[b][obj_mask_patch[b]]
+
+    If use_obj_mask=False, it keeps all crop patch tokens.
+    """
+
+    def __init__(
+        self,
+        dataset_path: str,
+        *,
+        obj_feature_name: str = "avg_self_attn_out",
+        part_feature_name: str = "cropaug_patch_tokens",
+        obj_text_name: str = "ann_feats",
+        part_text_name: str = "part_ann_feats",
+        resize_dim: int = 448,
+        crop_dim: int = 448,
+        patch_size: int = 14,
+        with_background: bool = False,
+        path_prefix: Optional[str] = None,
+        min_obj_area_ratio: float = 0.0,
+        batch_size: int = 64,
+        num_workers: int = 4,
+        store_dtype: torch.dtype = torch.float16,
+        use_obj_mask: bool = True,
+        pin_memory: bool = False,
+    ):
+        self.dataset_path = dataset_path
+
+        self.obj_feature_name = obj_feature_name
+        self.part_feature_name = part_feature_name
+        self.obj_text_name = obj_text_name
+        self.part_text_name = part_text_name
+
+        self.resize_dim = resize_dim
+        self.crop_dim = crop_dim
+        self.patch_size = patch_size
+        self.with_background = with_background
+        self.path_prefix = path_prefix
+        self.min_obj_area_ratio = min_obj_area_ratio
+
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+        self.store_dtype = store_dtype
+        self.use_obj_mask = use_obj_mask
+        self.pin_memory = pin_memory
+
+    def build_dataset(self) -> DinoClipJointDataset:
+        return DinoClipJointDataset(
+            self.dataset_path,
+            obj_feature_name=self.obj_feature_name,
+            part_feature_name=self.part_feature_name,
+            obj_text_name=self.obj_text_name,
+            part_text_name=self.part_text_name,
+            resize_dim=self.resize_dim,
+            crop_dim=self.crop_dim,
+            patch_size=self.patch_size,
+            with_background=self.with_background,
+            is_wds=".tar" in self.dataset_path,
+            path_prefix=self.path_prefix,
+            min_obj_area_ratio=self.min_obj_area_ratio,
+        )
+
+    @staticmethod
+    def _get_class_name(metadata: Any, b: int, fallback: str) -> str:
+        if isinstance(metadata, (list, tuple)) and b < len(metadata):
+            meta = metadata[b]
+            if isinstance(meta, dict):
+                return str(meta.get("class_name", fallback))
+        return fallback
+
+    @torch.no_grad()
+    def collect_ragged(self) -> Dict[int, Dict[str, Any]]:
+        """
+        Collect patch tokens by object category.
+
+        Return ragged dict:
+            {
+                category_id: {
+                    "class_name": str,
+                    "chunks": list[Tensor],
+                    "num_patches": int,
+                }
+            }
+        """
+        dataset = self.build_dataset()
+
+        loader = DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+            collate_fn=joint_collate_fn,
+            pin_memory=self.pin_memory,
+        )
+
+        chunks_by_cat: Dict[int, List[torch.Tensor]] = defaultdict(list)
+        class_name_by_cat: Dict[int, str] = {}
+
+        for batch in tqdm(loader, desc="collect object patch tokens"):
+            patch_tokens = batch["patch_tokens"]          # [B, N, D]
+            category_id = batch["category_id"].long()     # [B]
+            metadata = batch.get("metadata", None)
+
+            if self.use_obj_mask:
+                obj_mask_patch = batch["obj_mask_patch"].bool()  # [B, N]
+            else:
+                obj_mask_patch = torch.ones(
+                    patch_tokens.shape[:2],
+                    dtype=torch.bool,
+                    device=patch_tokens.device,
+                )
+
+            B = int(patch_tokens.shape[0])
+
+            for b in range(B):
+                cat = int(category_id[b].item())
+                mask = obj_mask_patch[b]
+
+                if mask.sum().item() == 0:
+                    continue
+
+                toks = patch_tokens[b][mask].detach().cpu().to(self.store_dtype).contiguous()
+
+                chunks_by_cat[cat].append(toks)
+                class_name_by_cat.setdefault(
+                    cat,
+                    self._get_class_name(metadata, b, fallback=f"class_{cat}"),
+                )
+
+        ragged: Dict[int, Dict[str, Any]] = {}
+
+        for cat in sorted(chunks_by_cat.keys()):
+            num_patches = int(sum(x.shape[0] for x in chunks_by_cat[cat]))
+
+            ragged[cat] = {
+                "category_id": cat,
+                "class_name": class_name_by_cat.get(cat, f"class_{cat}"),
+                "chunks": chunks_by_cat[cat],
+                "num_patches": num_patches,
+            }
+
+            print(
+                f"[object patch bank] cat={cat:02d}, "
+                f"class={ragged[cat]['class_name']}, "
+                f"patches={num_patches}"
+            )
+
+        return ragged
+
+    @torch.no_grad()
+    def build_padded(self) -> ObjectPatchTokenBankOutput:
+        """
+        Build padded tensor:
+
+            patch_bank: [num_obj, max_num_patch_token, dim]
+            patch_mask: [num_obj, max_num_patch_token]
+        """
+        ragged = self.collect_ragged()
+
+        if len(ragged) == 0:
+            raise RuntimeError("No object patch tokens were collected.")
+
+        category_ids_list = sorted(ragged.keys())
+        num_obj = len(category_ids_list)
+
+        num_patches_list = [int(ragged[cat]["num_patches"]) for cat in category_ids_list]
+        max_num_patch_token = max(num_patches_list)
+
+        # Infer dim from first non-empty chunk.
+        dim = None
+        for cat in category_ids_list:
+            for chunk in ragged[cat]["chunks"]:
+                if chunk.numel() > 0:
+                    dim = int(chunk.shape[-1])
+                    break
+            if dim is not None:
+                break
+
+        if dim is None:
+            raise RuntimeError("Cannot infer patch token dim.")
+
+        patch_bank = torch.zeros(
+            (num_obj, max_num_patch_token, dim),
+            dtype=self.store_dtype,
+        )
+
+        patch_mask = torch.zeros(
+            (num_obj, max_num_patch_token),
+            dtype=torch.bool,
+        )
+
+        num_patches = torch.tensor(num_patches_list, dtype=torch.long)
+        category_ids = torch.tensor(category_ids_list, dtype=torch.long)
+        class_names = [str(ragged[cat]["class_name"]) for cat in category_ids_list]
+
+        for i, cat in enumerate(category_ids_list):
+            tokens = torch.cat(ragged[cat]["chunks"], dim=0).contiguous()
+            n = int(tokens.shape[0])
+
+            patch_bank[i, :n] = tokens
+            patch_mask[i, :n] = True
+
+            print(
+                f"[pad] obj_index={i:02d}, cat={cat:02d}, "
+                f"class={ragged[cat]['class_name']}, "
+                f"tokens={n}/{max_num_patch_token}"
+            )
+
+        print("")
+        print(f"[done] patch_bank.shape = {tuple(patch_bank.shape)}")
+        print(f"[done] patch_mask.shape = {tuple(patch_mask.shape)}")
+        print(f"[done] num_obj = {num_obj}")
+        print(f"[done] max_num_patch_token = {max_num_patch_token}")
+        print(f"[done] dim = {dim}")
+
+        return ObjectPatchTokenBankOutput(
+            patch_bank=patch_bank,
+            patch_mask=patch_mask,
+            num_patches=num_patches,
+            category_ids=category_ids,
+            class_names=class_names,
+        )
+
+    @torch.no_grad()
+    def build_and_save(self, out_pth: str) -> ObjectPatchTokenBankOutput:
+        output = self.build_padded()
+
+        save_obj = {
+            "patch_bank": output.patch_bank,
+            "patch_mask": output.patch_mask,
+            "num_patches": output.num_patches,
+            "category_ids": output.category_ids,
+            "class_names": output.class_names,
+            "meta": {
+                "dataset_path": self.dataset_path,
+                "obj_feature_name": self.obj_feature_name,
+                "part_feature_name": self.part_feature_name,
+                "obj_text_name": self.obj_text_name,
+                "part_text_name": self.part_text_name,
+                "resize_dim": self.resize_dim,
+                "crop_dim": self.crop_dim,
+                "patch_size": self.patch_size,
+                "use_obj_mask": self.use_obj_mask,
+                "store_dtype": str(self.store_dtype),
+            },
+        }
+
+        torch.save(save_obj, out_pth)
+        print(f"[saved] {out_pth}")
+
+        return output
