@@ -5,7 +5,7 @@ model:
 
 train:
   lr: 0.0001
-  num_epochs: 1000
+  num_epochs: 200
   batch_size: 1
   sample_patches_per_step: null
   global_steps_per_epoch: null
@@ -13,6 +13,7 @@ train:
   lambda_inst: 1.0
   lambda_overlap: 20.0
   lambda_spear: 40.0
+  em_iters: 1
 
   patch_temperature: 0.07
   present_only_anchor: false

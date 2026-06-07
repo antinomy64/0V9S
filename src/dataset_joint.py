@@ -27,6 +27,7 @@ class DinoClipJointDataset(Dataset):
         is_wds: bool = False,
         path_prefix: Optional[str] = None,
         min_obj_area_ratio: float = 0.0,
+        class_part_bank: Optional[Dict[int, Dict]] = None,
     ):
         self.obj_feature_name = obj_feature_name
         self.part_feature_name = part_feature_name
@@ -40,6 +41,7 @@ class DinoClipJointDataset(Dataset):
         self.min_obj_area_ratio = float(min_obj_area_ratio)
         self.grid_size = crop_dim // patch_size
         self.class_part_bank = {}
+        self._provided_class_part_bank = class_part_bank
 
         self.part_taxonomy = "fine"
 
@@ -284,6 +286,42 @@ class DinoClipJointDataset(Dataset):
                 "part_names": part_names,
             }
 
+    @staticmethod
+    def _clone_class_part_bank(class_part_bank: Dict[int, Dict]) -> Dict[int, Dict]:
+        """Clone an externally supplied category -> all-parts bank.
+
+        The clone prevents train/val datasets from sharing mutable tensor
+        objects while keeping exactly the same part IDs, text prototypes,
+        and part names across splits.
+        """
+        cloned: Dict[int, Dict] = {}
+        for cat, item in class_part_bank.items():
+            cloned[int(cat)] = {
+                "part_ids": item["part_ids"].detach().cpu().clone().long(),
+                "part_feats": item["part_feats"].detach().cpu().clone().float(),
+                "part_names": list(item.get("part_names", [])),
+            }
+        return cloned
+
+    def _initialize_class_part_bank(self, annotations: List[Dict], obj_text_dim: int) -> None:
+        """Build a bank from this split or reuse a provided fixed bank."""
+        if self._provided_class_part_bank is None:
+            self._build_class_part_bank_from_annotations(
+                annotations,
+                obj_text_dim=obj_text_dim,
+            )
+            print(
+                f"Built class_part_bank for {len(self.class_part_bank)} object classes "
+                "from this dataset split"
+            )
+        else:
+            self.class_part_bank = self._clone_class_part_bank(
+                self._provided_class_part_bank
+            )
+            print(
+                f"Reused fixed class_part_bank for {len(self.class_part_bank)} object classes"
+            )
+
     def _get_all_parts_for_category(self, category_id: int, obj_text_feat: torch.Tensor):
         bank = self.class_part_bank.get(int(category_id), None)
         if bank is None:
@@ -316,9 +354,8 @@ class DinoClipJointDataset(Dataset):
                 break
         obj_text_dim = int(example_obj_text.shape[-1]) if example_obj_text is not None else 0
 
-        # Pass 1: build category -> all-parts bank
-        self._build_class_part_bank_from_annotations(annotations, obj_text_dim=obj_text_dim)
-        print(f"Built class_part_bank for {len(self.class_part_bank)} object classes")
+        # Pass 1: build or reuse a fixed category -> all-parts bank.
+        self._initialize_class_part_bank(annotations, obj_text_dim=obj_text_dim)
 
         # Pass 2: build samples; each sample uses ALL parts of its object category
         self.data = {}
@@ -390,9 +427,8 @@ class DinoClipJointDataset(Dataset):
                 break
         obj_text_dim = int(example_obj_text.shape[-1]) if example_obj_text is not None else 0
 
-        # Pass 1: build category -> all-parts bank
-        self._build_class_part_bank_from_annotations(records, obj_text_dim=obj_text_dim)
-        print(f"Built class_part_bank for {len(self.class_part_bank)} object classes")
+        # Pass 1: build or reuse a fixed category -> all-parts bank.
+        self._initialize_class_part_bank(records, obj_text_dim=obj_text_dim)
 
         # Pass 2: build samples; each sample uses ALL parts of its object category
         self.data = {}

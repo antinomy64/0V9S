@@ -1,6 +1,7 @@
 
 from copy import deepcopy
 import os
+from pathlib import Path
 import random
 from typing import Dict
 
@@ -69,6 +70,22 @@ def _move_batch_to_device(batch: Dict, device: torch.device) -> Dict:
     return moved
 
 
+
+
+def _detach_metric_dict(metrics: Dict) -> Dict:
+    """Detach tensors before storing epoch statistics.
+
+    Keeping the original loss dictionary would retain the computation graph
+    referenced by ``total`` for the whole epoch.
+    """
+    out = {}
+    for key, value in metrics.items():
+        if torch.is_tensor(value):
+            out[key] = value.detach().float().cpu()
+        else:
+            out[key] = value
+    return out
+
 def _mean_dict(list_of_dicts):
     if len(list_of_dicts) == 0:
         return {}
@@ -109,6 +126,237 @@ def _mean_dict(list_of_dicts):
     return out
 
 
+def _build_part_name_map(joint_dataset) -> Dict[int, str]:
+    """Build part-id -> part-name mapping from the existing dataset metadata."""
+    samples = (
+        joint_dataset.data.values()
+        if isinstance(joint_dataset.data, dict)
+        else joint_dataset.data
+    )
+
+    part_name_map: Dict[int, str] = {}
+
+    for sample in samples:
+        part_ids = sample.get("part_category_id", [])
+        part_names = sample.get("part_class_name", [])
+
+        if torch.is_tensor(part_ids):
+            part_ids = part_ids.detach().cpu().tolist()
+
+        for part_id, part_name in zip(part_ids, part_names):
+            part_name_map[int(part_id)] = str(part_name)
+
+    return part_name_map
+
+
+def _part_name(part_id: int, part_name_map: Dict[int, str]) -> str:
+    if int(part_id) < 0:
+        return "NONE"
+    return part_name_map.get(int(part_id), f"part_{int(part_id)}")
+
+
+def _anchor_gt_name(part_ids, part_name_map: Dict[int, str]) -> str:
+    if len(part_ids) == 0:
+        return "NONE"
+    return "|".join(_part_name(pid, part_name_map) for pid in part_ids)
+
+
+# @torch.no_grad()
+# def audit_full_train_pool(
+#     model,
+#     train_pool_dataset,
+#     criterion,
+#     epoch: int,
+#     out_txt: str,
+#     part_name_map: Dict[int, str],
+# ):
+#     """
+#     Audit the complete category pools after one training epoch.
+
+#     For each projected part text feature, print:
+#       target text -> anchor patch GT -> nearest GT prototype to EM pseudo prototype.
+#     """
+#     model.eval()
+#     criterion.eval()
+#     device = next(model.parameters()).device
+
+#     lines = []
+#     lines.append("=" * 150)
+#     lines.append(f"[epoch {epoch:03d}] full_train_global_pool")
+#     lines.append("")
+#     lines.append(
+#         f"{'cat':>4}  "
+#         f"{'target_id':>9}  "
+#         f"{'target_text':<38}  "
+#         f"{'anchor_patch_GT':<38}  "
+#         f"{'pseudo_proto_nearest_GT':<38}  "
+#         f"{'cos':>8}"
+#     )
+#     lines.append("-" * 150)
+
+#     for cat in train_pool_dataset.categories:
+#         # Use the stored complete pool directly, not __getitem__(), because
+#         # __getitem__() may randomly subsample sample_patches_per_step patches.
+#         full_item = train_pool_dataset.pools[cat]
+#         batch = global_pool_collate_fn([full_item])
+#         batch = _move_batch_to_device(batch, device)
+
+#         records = criterion.audit_anchor_and_proto(batch)
+
+#         for record in records:
+#             target_id = int(record["target_part_id"])
+#             nearest_id = int(record["pseudo_proto_nearest_gt_part_id"])
+#             nearest_cos = float(record["pseudo_proto_nearest_gt_cos"])
+
+#             target_name = _part_name(target_id, part_name_map)
+#             anchor_name = _anchor_gt_name(
+#                 record["anchor_gt_part_ids"],
+#                 part_name_map,
+#             )
+#             nearest_name = _part_name(nearest_id, part_name_map)
+
+#             cos_text = "nan" if not np.isfinite(nearest_cos) else f"{nearest_cos:.4f}"
+
+#             lines.append(
+#                 f"{int(record['category_id']):>4d}  "
+#                 f"{target_id:>9d}  "
+#                 f"{target_name:<38.38}  "
+#                 f"{anchor_name:<38.38}  "
+#                 f"{nearest_name:<38.38}  "
+#                 f"{cos_text:>8}"
+#             )
+
+#         del batch, records
+#         if torch.cuda.is_available():
+#             torch.cuda.empty_cache()
+
+#     lines.append("=" * 150)
+#     text = "\n".join(lines)
+
+#     print("")
+#     print(text)
+
+#     out_path = Path(out_txt)
+#     out_path.parent.mkdir(parents=True, exist_ok=True)
+#     with out_path.open("a", encoding="utf-8") as f:
+#         f.write(text)
+#         f.write("\n\n")
+#         f.flush()
+
+
+def build_cached_train_gt_prototypes(
+    train_pool_dataset,
+    eps: float = 1e-6,
+    chunk_size: int = 65536,
+):
+    """Precompute train GT visual part prototypes exactly once.
+
+    This uses the already-built complete category pools, so it does not reload
+    the dataset or change the training pipeline.  For every semantic part that
+    has at least one GT-covered patch, cache:
+
+      * its original text feature;
+      * its GT visual prototype (mean of normalized GT-covered patch tokens,
+        followed by L2 normalization);
+      * its global part id.
+
+    The calculation is chunked to avoid converting a very large category pool
+    to float32 all at once.  The returned tensors are small (about 116 rows for
+    fine VOC116) and can be kept on GPU during training.
+    """
+    text_features = []
+    gt_prototypes = []
+    part_ids = []
+
+    for cat in train_pool_dataset.categories:
+        item = train_pool_dataset.pools[cat]
+        patch_tokens = item["patch_tokens"]          # [M, D], normally CPU float16
+        part_gt_mask = item["part_gt_mask_patch"].bool()  # [K, M]
+        part_text_feat = item["part_text_feat"].float()   # [K, Dt]
+        part_category_id = item["part_category_id"].long()
+
+        if patch_tokens.ndim != 2 or part_gt_mask.ndim != 2:
+            raise ValueError(
+                f"Invalid pool shapes for category {cat}: "
+                f"patch_tokens={tuple(patch_tokens.shape)}, "
+                f"part_gt_mask_patch={tuple(part_gt_mask.shape)}"
+            )
+
+        K = int(part_gt_mask.shape[0])
+        M = int(patch_tokens.shape[0])
+        D = int(patch_tokens.shape[1])
+
+        proto_sum = torch.zeros((K, D), dtype=torch.float32)
+        proto_count = torch.zeros((K,), dtype=torch.float32)
+
+        for start in range(0, M, int(chunk_size)):
+            end = min(start + int(chunk_size), M)
+            patch_chunk = patch_tokens[start:end].float()
+            patch_chunk = torch.nn.functional.normalize(
+                patch_chunk,
+                dim=-1,
+                eps=eps,
+            )
+            mask_chunk = part_gt_mask[:, start:end].float()
+
+            proto_sum += mask_chunk @ patch_chunk
+            proto_count += mask_chunk.sum(dim=1)
+
+        valid = proto_count > 0
+        if not bool(valid.any().item()):
+            continue
+
+        proto = proto_sum[valid] / proto_count[valid, None].clamp_min(1.0)
+        proto = torch.nn.functional.normalize(proto, dim=-1, eps=eps)
+
+        text_features.append(part_text_feat[valid].cpu())
+        gt_prototypes.append(proto.cpu())
+        part_ids.append(part_category_id[valid].cpu())
+
+    if len(text_features) == 0:
+        raise RuntimeError("No valid GT part prototypes could be built from train pools.")
+
+    cache = {
+        "part_text_feat": torch.cat(text_features, dim=0).contiguous(),
+        "gt_prototypes": torch.cat(gt_prototypes, dim=0).contiguous(),
+        "part_category_id": torch.cat(part_ids, dim=0).contiguous(),
+    }
+
+    print(
+        "[gt proto cache] cached "
+        f"{cache['part_text_feat'].shape[0]} GT part prototypes once "
+        f"for per-epoch cosine audit"
+    )
+    return cache
+
+
+@torch.no_grad()
+def cached_projected_text_gt_proto_cosine(model, gt_proto_cache) -> float:
+    """Project cached part text features and average paired GT-prototype cosine.
+
+    This performs no patch-pool scan.  Per epoch, the work is only one text
+    projection over the cached semantic parts and one row-wise cosine mean.
+    """
+    model.eval()
+    device = next(model.parameters()).device
+
+    part_text_feat = gt_proto_cache["part_text_feat"]
+    gt_prototypes = gt_proto_cache["gt_prototypes"]
+
+    if part_text_feat.device != device:
+        part_text_feat = part_text_feat.to(device)
+        gt_prototypes = gt_prototypes.to(device)
+        gt_proto_cache["part_text_feat"] = part_text_feat
+        gt_proto_cache["gt_prototypes"] = gt_prototypes
+        gt_proto_cache["part_category_id"] = gt_proto_cache["part_category_id"].to(device)
+
+    part_proj = model.project_clip_txt(part_text_feat.float())
+    part_proj = torch.nn.functional.normalize(part_proj, dim=-1, eps=1e-6)
+    gt_prototypes = torch.nn.functional.normalize(gt_prototypes.float(), dim=-1, eps=1e-6)
+
+    return float((part_proj * gt_prototypes).sum(dim=-1).mean().item())
+
+
 def train(model, train_dataloader, criterion, optimizer, scheduler=None, epoch=0):
     model.train()
     device = next(model.parameters()).device
@@ -129,7 +377,7 @@ def train(model, train_dataloader, criterion, optimizer, scheduler=None, epoch=0
         total_loss.backward()
         optimizer.step()
 
-        running.append(losses)
+        running.append(_detach_metric_dict(losses))
         pbar.set_description(
             f"train total={losses['total'].item():.4f} "
             f"inst={losses['inst'].item():.4f} overlap={losses['overlap'].item():.4f} "
@@ -149,7 +397,7 @@ def validate(model, val_dataloader, criterion):
     for batch in pbar:
         batch = _move_batch_to_device(batch, device)
         losses = criterion(batch)
-        running.append(losses)
+        running.append(_detach_metric_dict(losses))
         pbar.set_description(
             f"val total={losses['total'].item():.4f} "
             f"inst={losses['inst'].item():.4f} overlap={losses['overlap'].item():.4f} "
@@ -169,6 +417,7 @@ def do_train(
     scheduler_name: str = 'linear',
     warmup: int = 0,
     eval_proj_name: str = "",
+    audit_out_txt: str = "",
 ):
     set_seed(seed)
 
@@ -176,6 +425,11 @@ def do_train(
     num_epochs = train_cfg['num_epochs']
     batch_size = train_cfg['batch_size']
     shuffle = train_cfg.get('shuffle', True)
+
+    if int(batch_size) != 1:
+        raise ValueError(
+            f"Global category-pool training requires train.batch_size=1, got {batch_size}."
+        )
 
     lambda_inst = train_cfg.get('lambda_inst', 0.2)
     lambda_overlap = train_cfg.get('lambda_overlap', 0.05)
@@ -189,6 +443,22 @@ def do_train(
 
     if not eval_proj_name:
         raise ValueError("eval_proj_name must be provided for mIoU evaluation.")
+
+    # if not audit_out_txt:
+    #     audit_out_txt = os.path.join(
+    #         "audits",
+    #         f"{eval_proj_name}_anchor_proto_audit.txt",
+    #     )
+
+    # audit_path = Path(audit_out_txt)
+    # audit_path.parent.mkdir(parents=True, exist_ok=True)
+    # with audit_path.open("w", encoding="utf-8") as f:
+    #     f.write(
+    #         "target text -> anchor patch GT -> EM pseudo prototype nearest GT prototype\n\n"
+    #     )
+    # print(f"[audit] anchor/prototype audit will be saved to: {audit_out_txt}")
+
+    # part_name_map = _build_part_name_map(train_dataset)
     
     print(
         "[config] "
@@ -217,8 +487,12 @@ def do_train(
         sample_patches_per_step=sample_patches_per_step,
         steps_per_epoch=None,
         store_dtype=torch.float16,
-        seed=seed,
+        seed=seed + 1,
+        fixed_subsample=True,
     )
+
+    # Build GT prototypes once.  This is an audit-only cache and never enters loss.
+    gt_proto_cache = build_cached_train_gt_prototypes(train_pool_dataset)
 
     train_dataloader = DataLoader(
         train_pool_dataset,
@@ -266,10 +540,36 @@ def do_train(
     train_history = []
     val_history = []
 
+    initial_full_train_gt_proto_cos = cached_projected_text_gt_proto_cosine(
+        model,
+        gt_proto_cache,
+    )
+
+    print(
+        "[gt proto cache] initial_full_train_gt_proto_cos="
+        f"{initial_full_train_gt_proto_cos:.4f}"
+    )
+
     for epoch in range(num_epochs):
         print(f"Epoch {epoch} / {num_epochs - 1}")
         train_metrics = train(model, train_dataloader, criterion, optimizer, scheduler=scheduler, epoch=epoch)
         val_metrics = validate(model, val_dataloader, criterion)
+
+        # Almost-free oracle audit metric: cached GT prototypes, no pool scan.
+        full_train_gt_proto_cos = cached_projected_text_gt_proto_cosine(
+            model,
+            gt_proto_cache,
+        )
+        train_metrics["full_train_gt_proto_cos"] = full_train_gt_proto_cos
+
+        # audit_full_train_pool(
+        #     model=model,
+        #     train_pool_dataset=train_pool_dataset,
+        #     criterion=criterion,
+        #     epoch=epoch,
+        #     out_txt=audit_out_txt,
+        #     part_name_map=part_name_map,
+        # )
 
         train_history.append(train_metrics)
         val_history.append(val_metrics)
@@ -277,7 +577,8 @@ def do_train(
         print(
             f"Epoch {epoch}: "
             f"train_total={train_metrics['total']:.4f}, val_total={val_metrics['total']:.4f}, "
-            f"anchor_hit_rate={val_metrics.get('anchor_hit_rate', 0.0):.4f}"
+            f"anchor_hit_rate={val_metrics.get('anchor_hit_rate', 0.0):.4f}, "
+            f"full_train_gt_proto_cos={full_train_gt_proto_cos:.4f}"
         )
 
     return model, train_history, val_history

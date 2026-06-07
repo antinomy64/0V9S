@@ -24,14 +24,6 @@ def train_and_eval_joint(
     warmup=0,
     name_pedix='',
     init_weights='',
-    miou_eval_script=None,
-    miou_eval_cfg=None,
-    miou_eval_base_cfg=None,
-    miou_result_dir="segmentation_results",
-    miou_result_json_name=None,
-    miou_bench_key=None,
-    miou_extra_opts=None,
-    miou_eval_port=29517,
 ):
     out_dir = 'weights'
     os.makedirs(out_dir, exist_ok=True)
@@ -69,16 +61,6 @@ def train_and_eval_joint(
         weight_decay=weight_decay,
         scheduler_name=scheduler,
         warmup=warmup,
-        eval_proj_class=proj_class,
-        eval_proj_name=model_name,
-        miou_eval_script=miou_eval_script,
-        miou_eval_cfg=miou_eval_cfg,
-        miou_eval_base_cfg=miou_eval_base_cfg,
-        miou_result_dir=miou_result_dir,
-        miou_result_json_name=miou_result_json_name,
-        miou_bench_key=miou_bench_key,
-        miou_extra_opts=miou_extra_opts,
-        miou_eval_port=miou_eval_port,
     )
 
     torch.save(model.state_dict(), f"{out_path}.pth")
@@ -112,15 +94,6 @@ if __name__ == '__main__':
     parser.add_argument('--warmup', type=int, default=0, help='Number of warmup steps')
     parser.add_argument('--name_pedix', type=str, default='', help='String appended to output model name')
     parser.add_argument('--init_weights', type=str, default='', help='Path to existing projector checkpoint used to initialize finetuning')
-
-    parser.add_argument('--miou_eval_script', type=str, default='src/open_vocabulary_segmentation/main.py')
-    parser.add_argument('--miou_eval_cfg', type=str, required=True)
-    parser.add_argument('--miou_eval_base_cfg', type=str, required=True)
-    parser.add_argument('--miou_result_dir', type=str, default='segmentation_results')
-    parser.add_argument('--miou_result_json_name', type=str, default=None)
-    parser.add_argument('--miou_bench_key', type=str, default=None)
-    parser.add_argument('--miou_extra_opts', nargs='*', default=None, help='Extra opts appended after model.proj_name=...')
-    parser.add_argument("--miou_eval_port", type=int, default=29517)
 
     args = parser.parse_args()
 
@@ -159,7 +132,14 @@ if __name__ == '__main__':
         is_wds=is_val_wds,
         path_prefix=args.path_prefix,
         min_obj_area_ratio=0.0,
+        class_part_bank=train_dataset.class_part_bank,
     )
+
+    if train_dataset.part_taxonomy != val_dataset.part_taxonomy:
+        raise ValueError(
+            "Train/val part taxonomy mismatch: "
+            f"train={train_dataset.part_taxonomy}, val={val_dataset.part_taxonomy}"
+        )
 
     train_and_eval_joint(
         args.model_config,
@@ -171,12 +151,4 @@ if __name__ == '__main__':
         warmup=args.warmup,
         name_pedix=args.name_pedix,
         init_weights=args.init_weights,
-        miou_eval_script=args.miou_eval_script,
-        miou_eval_cfg=args.miou_eval_cfg,
-        miou_eval_base_cfg=args.miou_eval_base_cfg,
-        miou_result_dir=args.miou_result_dir,
-        miou_result_json_name=args.miou_result_json_name,
-        miou_bench_key=args.miou_bench_key,
-        miou_extra_opts=args.miou_extra_opts,
-        miou_eval_port=args.miou_eval_port,
     )

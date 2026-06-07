@@ -66,7 +66,7 @@ class ContrastiveLoss(Contrastive):
     Compute contrastive loss
     """
 
-    def __init__(self, sim, margin=0, max_violation=False, ltype='triplet'):
+    def __init__(self, sim, margin=0.0, max_violation=False, ltype='triplet'):
         super(ContrastiveLoss, self).__init__(sim=sim, margin=margin, max_violation=max_violation, ltype=ltype)
         
 

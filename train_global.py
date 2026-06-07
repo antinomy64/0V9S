@@ -24,6 +24,7 @@ def train_and_eval(
     warmup=0,
     name_pedix='',
     init_weights='',
+    audit_out_txt='',
 ):
     out_dir = 'weights'
     os.makedirs(out_dir, exist_ok=True)
@@ -62,6 +63,7 @@ def train_and_eval(
         scheduler_name=scheduler,
         warmup=warmup,
         eval_proj_name=model_name,
+        audit_out_txt=audit_out_txt,
     )
 
     torch.save(model.state_dict(), f"{out_path}.pth")
@@ -95,6 +97,12 @@ if __name__ == '__main__':
     parser.add_argument('--warmup', type=int, default=0, help='Number of warmup steps')
     parser.add_argument('--name_pedix', type=str, default='', help='String appended to output model name')
     parser.add_argument('--init_weights', type=str, default='', help='Path to existing projector checkpoint used to initialize finetuning')
+    parser.add_argument(
+        '--audit_out_txt',
+        type=str,
+        default='',
+        help='Optional output txt for per-epoch full-pool anchor/prototype audit.',
+    )
 
     
 
@@ -135,7 +143,75 @@ if __name__ == '__main__':
         is_wds=is_val_wds,
         path_prefix=args.path_prefix,
         min_obj_area_ratio=0.0,
+        class_part_bank=train_dataset.class_part_bank,
     )
+
+    if train_dataset.part_taxonomy != val_dataset.part_taxonomy:
+        raise ValueError(
+            "Train/val part taxonomy mismatch: "
+            f"train={train_dataset.part_taxonomy}, val={val_dataset.part_taxonomy}"
+        )
+
+    train_categories = set(int(x) for x in train_dataset.class_part_bank.keys())
+
+    val_samples = (
+        list(val_dataset.data.values())
+        if isinstance(val_dataset.data, dict)
+        else list(val_dataset.data)
+    )
+
+    val_categories = {
+        int(sample["category_id"])
+        for sample in val_samples
+    }
+
+    def sample_has_parts(sample):
+        part_ids = sample.get("part_category_id", None)
+
+        if part_ids is None:
+            return False
+
+        if torch.is_tensor(part_ids):
+            return part_ids.numel() > 0
+
+        if isinstance(part_ids, (list, tuple)):
+            return len(part_ids) > 0
+
+        # 标量 part id，视为存在 part。
+        return True
+
+    # 只检查 val 中真正包含 part 标注的类别。
+    val_categories_with_parts = {
+        int(sample["category_id"])
+        for sample in val_samples
+        if sample_has_parts(sample)
+    }
+
+    missing_val_part_categories = sorted(
+        val_categories_with_parts - train_categories
+    )
+
+    if missing_val_part_categories:
+        raise ValueError(
+            "Validation categories with part annotations are missing from "
+            "train class_part_bank: "
+            f"{missing_val_part_categories}"
+        )
+
+    val_categories_without_parts = sorted(
+        val_categories - val_categories_with_parts
+    )
+
+    if val_categories_without_parts:
+        print(
+            "[dataset] validation categories without part annotations will "
+            "be skipped by the global part pool: "
+            f"{val_categories_without_parts}"
+        )
+
+    print(f"[dataset] with_background={args.with_background}")
+    print(f"[dataset] train/val taxonomy={train_dataset.part_taxonomy}")
+    print(f"[dataset] fixed class_part_bank categories={len(train_categories)}")
 
     train_and_eval(
         args.model_config,
@@ -147,4 +223,5 @@ if __name__ == '__main__':
         warmup=args.warmup,
         name_pedix=args.name_pedix,
         init_weights=args.init_weights,
+        audit_out_txt=args.audit_out_txt,
     )

@@ -16,7 +16,6 @@ class JointObjPartLoss(nn.Module):
         lambda_inst: float = 0.2,
         lambda_overlap: float = 0.05,
         lambda_spear: float = 0.0,
-        topk_ratio: float = 0.1,
         patch_temperature: float = 0.07,
         eps: float = 1e-6,
         em_iters: int = 3,
@@ -26,7 +25,7 @@ class JointObjPartLoss(nn.Module):
         self.sim_model = sim_model
         self.obj_criterion = ContrastiveLoss(
             sim_model,
-            margin=int(obj_margin),
+            margin=float(obj_margin),
             max_violation=obj_max_violation,
             ltype=obj_ltype,
         )
@@ -34,7 +33,6 @@ class JointObjPartLoss(nn.Module):
         self.lambda_inst = lambda_inst
         self.lambda_overlap = lambda_overlap
         self.lambda_spear = lambda_spear
-        self.topk_ratio = topk_ratio
         self.patch_temperature = patch_temperature
         self.eps = eps
         self.em_iters = int(em_iters)
@@ -58,6 +56,9 @@ class JointObjPartLoss(nn.Module):
         else:
             part_anchor_mask = part_valid_mask
 
+        has_obj_patch = obj_mask_patch.any(dim=-1, keepdim=True)  # [B, 1]
+        part_train_mask = part_anchor_mask & has_obj_patch        # [B, K]
+
         obj_loss = self.obj_criterion(
             obj_feat,
             obj_text_feat,
@@ -70,7 +71,7 @@ class JointObjPartLoss(nn.Module):
 
         zero = obj_loss.new_tensor(0.0)
 
-        if part_text_feat.shape[1] == 0 or not part_anchor_mask.any():
+        if part_text_feat.shape[1] == 0 or not part_train_mask.any():
             total = self.lambda_obj * obj_loss
             return {
                 "total": total,
@@ -94,22 +95,22 @@ class JointObjPartLoss(nn.Module):
         abs_logits = torch.einsum("bkd,bnd->bkn", part_proj, patch_tokens) / self.patch_temperature
         abs_logits = abs_logits.masked_fill(~obj_mask_patch[:, None, :], -1e4)
 
-        z_part, proto_part, anchor_metrics = self._anchor_proto_em_pool(
+        z_part, _, anchor_metrics = self._anchor_proto_em_pool(
             patch_tokens=patch_tokens,
             abs_logits=abs_logits,
             obj_mask_patch=obj_mask_patch,
-            part_valid_mask=part_anchor_mask,
+            part_valid_mask=part_train_mask,
             part_gt_mask_patch=part_gt_mask_patch,
             num_iters=self.em_iters,
         )
 
-        inst_loss = self._instance_consistency_loss(part_proj, z_part, part_anchor_mask)
+        inst_loss = self._instance_consistency_loss(part_proj, z_part, part_train_mask)
 
         overlap_loss = (
             self._soft_part_overlap_loss(
                 abs_logits=abs_logits,
                 obj_mask_patch=obj_mask_patch,
-                part_valid_mask=part_anchor_mask,
+                part_valid_mask=part_train_mask,
             )
             if self.lambda_overlap > 0
             else zero
@@ -124,7 +125,7 @@ class JointObjPartLoss(nn.Module):
                 part_text_feat=part_text_feat,
                 obj_proj=obj_proj,
                 part_proj=part_proj,
-                part_valid_mask=part_anchor_mask,
+                part_valid_mask=part_train_mask,
             )
             if self.lambda_spear > 0
             else zero

@@ -1,7 +1,6 @@
 # src/dataset_global_pool.py
 
 from typing import Dict, List, Optional
-import random
 import torch
 from torch.utils.data import Dataset
 
@@ -26,16 +25,30 @@ class CategoryPatchPoolDataset(Dataset):
         steps_per_epoch: Optional[int] = None,
         store_dtype: torch.dtype = torch.float16,
         seed: int = 123,
+        fixed_subsample: bool = False,
     ):
+        if sample_patches_per_step is not None and int(sample_patches_per_step) <= 0:
+            raise ValueError("sample_patches_per_step must be positive or None.")
+        if steps_per_epoch is not None and int(steps_per_epoch) <= 0:
+            raise ValueError("steps_per_epoch must be positive or None.")
+
         self.sample_patches_per_step = sample_patches_per_step
         self.steps_per_epoch = steps_per_epoch
         self.store_dtype = store_dtype
-        self.rng = random.Random(seed)
+        self.seed = int(seed)
+        self.fixed_subsample = bool(fixed_subsample)
+
+        # Use an independent torch.Generator so pool sampling is reproducible
+        # and does not consume the global RNG used by model training.
+        self.generator = torch.Generator()
+        self.generator.manual_seed(self.seed)
 
         self.pools: Dict[int, Dict] = {}
         self.categories: List[int] = []
+        self.fixed_indices: Dict[int, torch.Tensor] = {}
 
         self._build_pools(joint_dataset)
+        self._build_fixed_indices()
 
     def _build_pools(self, joint_dataset):
         tmp = {}
@@ -49,6 +62,19 @@ class CategoryPatchPoolDataset(Dataset):
             patch_tokens = sample["patch_tokens"].float()          # [N, D]
             obj_mask = sample["obj_mask_patch"].bool()             # [N]
             part_gt = sample["part_gt_mask_patch"].bool()          # [K, N]
+
+            if patch_tokens.ndim != 2:
+                raise ValueError(f"Expected patch_tokens [N, D], got {tuple(patch_tokens.shape)}")
+            if obj_mask.ndim != 1 or obj_mask.shape[0] != patch_tokens.shape[0]:
+                raise ValueError(
+                    f"obj_mask_patch shape {tuple(obj_mask.shape)} does not match "
+                    f"patch_tokens shape {tuple(patch_tokens.shape)}"
+                )
+            if part_gt.ndim != 2 or part_gt.shape[1] != patch_tokens.shape[0]:
+                raise ValueError(
+                    f"part_gt_mask_patch shape {tuple(part_gt.shape)} does not match "
+                    f"patch_tokens shape {tuple(patch_tokens.shape)}"
+                )
 
             if obj_mask.sum().item() == 0:
                 continue
@@ -66,6 +92,19 @@ class CategoryPatchPoolDataset(Dataset):
                     "part_category_id": sample["part_category_id"].long().clone(),
                     "part_class_name": sample.get("part_class_name", []),
                 }
+            else:
+                ref_ids = tmp[cat]["part_category_id"]
+                cur_ids = sample["part_category_id"].long()
+                if not torch.equal(ref_ids, cur_ids):
+                    raise ValueError(
+                        f"Inconsistent part_category_id order for category {cat}: "
+                        f"expected {ref_ids.tolist()}, got {cur_ids.tolist()}"
+                    )
+                if int(part_gt_obj.shape[0]) != int(ref_ids.numel()):
+                    raise ValueError(
+                        f"part_gt rows ({part_gt_obj.shape[0]}) do not match "
+                        f"part bank size ({ref_ids.numel()}) for category {cat}"
+                    )
 
             tmp[cat]["patch_chunks"].append(patch_obj.cpu())
             tmp[cat]["part_gt_chunks"].append(part_gt_obj.cpu())
@@ -98,6 +137,8 @@ class CategoryPatchPoolDataset(Dataset):
             }
 
         self.categories = sorted(self.pools.keys())
+        if len(self.categories) == 0:
+            raise RuntimeError("No non-empty category patch pools were built.")
 
         print(f"[global pool] built {len(self.categories)} category pools")
         for cat in self.categories:
@@ -107,6 +148,19 @@ class CategoryPatchPoolDataset(Dataset):
                 f"patches={p['patch_tokens'].shape[0]}, "
                 f"parts={p['part_text_feat'].shape[0]}"
             )
+
+    def _build_fixed_indices(self) -> None:
+        """Precompute deterministic subsets for validation-style usage."""
+        if not self.fixed_subsample or self.sample_patches_per_step is None:
+            return
+
+        for cat in self.categories:
+            M = int(self.pools[cat]["patch_tokens"].shape[0])
+            if M > int(self.sample_patches_per_step):
+                self.fixed_indices[cat] = torch.randperm(
+                    M,
+                    generator=self.generator,
+                )[: int(self.sample_patches_per_step)]
 
     def __len__(self):
         if self.steps_per_epoch is not None:
@@ -124,7 +178,10 @@ class CategoryPatchPoolDataset(Dataset):
 
         # 每次 step 从类别全局池里采样一部分 patch，避免显存爆炸
         if self.sample_patches_per_step is not None and M > self.sample_patches_per_step:
-            perm = torch.randperm(M)[: self.sample_patches_per_step]
+            if self.fixed_subsample:
+                perm = self.fixed_indices[cat]
+            else:
+                perm = torch.randperm(M, generator=self.generator)[: self.sample_patches_per_step]
             patch_tokens = patch_tokens[perm]
             part_gt_mask_patch = part_gt_mask_patch[:, perm]
 
