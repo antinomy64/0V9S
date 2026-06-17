@@ -18,7 +18,7 @@ sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from scripts.anlysis import FeatureAnalyser
-from scripts.anlysis import mean_features_by_part
+from scripts.anlysis import mean_features_by_part, compute_residual_feature
 
 try:
     # Prefer existing project implementation if available.
@@ -315,6 +315,8 @@ def main():
     parser.add_argument("--feat_vision_name", default="feat_dinov2_part")
     parser.add_argument("--min_parts", type=int, default=3)
 
+    parser.add_argument("--_lambda", type=float, default=1.0)
+
     args = parser.parse_args()
 
     analyser = FeatureAnalyser(
@@ -335,7 +337,7 @@ def main():
         show_progress=args.show_progress,
     )
 
-    fake_features_by_part, gt_features_by_part = analyser.collect_vision_feature()
+    fake_features_by_part, gt_features_by_part, gt_features_by_obj = analyser.collect_vision_feature()
 
     (
         _obj_text_raw_by_category,
@@ -352,10 +354,18 @@ def main():
         dim=dino_dim,
     )
 
-    feat_gt_mean, _, _gt_count = mean_features_by_part(
-        gt_features_by_part,
-        dim=dino_dim,
+    # feat_gt_mean, _, _gt_count = mean_features_by_part(
+    #     gt_features_by_part,
+    #     dim=dino_dim,
+    # )
+
+    res_out = compute_residual_feature(
+        gt_features_by_part=gt_features_by_part,
+        gt_features_by_obj=gt_features_by_obj,
+        lambda_residual=args._lambda,
     )
+
+    feat_gt_mean = res_out["residual_features"]
 
     feat_text_raw_mean, _, _text_raw_count = mean_features_by_part(
         part_text_raw_by_part,

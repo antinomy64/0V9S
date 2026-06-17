@@ -551,14 +551,14 @@ def main():
     parser.add_argument("--part_feature_name", default="cropaug_patch_tokens")
     parser.add_argument("--obj_text_name", default="ann_feats")
     parser.add_argument("--part_text_name", default="part_ann_feats")
-    parser.add_argument("--resize_dim", type=int, default=448)
-    parser.add_argument("--crop_dim", type=int, default=448)
+    parser.add_argument("--resize_dim", type=int, default=518)
+    parser.add_argument("--crop_dim", type=int, default=518)
     parser.add_argument("--patch_size", type=int, default=14)
     parser.add_argument("--with_background", action="store_true", default=False)
     parser.add_argument("--path_prefix", default=None)
 
     parser.add_argument("--batch_size", type=int, default=16)
-    parser.add_argument("--num_workers", type=int, default=4)
+    parser.add_argument("--num_workers", type=int, default=0)
     parser.add_argument("--patch_temperature", type=float, default=None)
     parser.add_argument("--em_iters", type=int, default=None)
 

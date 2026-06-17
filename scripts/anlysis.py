@@ -19,6 +19,87 @@ from src.dataset_joint import DinoClipJointDataset, joint_collate_fn
 from src.loss_joint import JointObjPartLoss
 from src.voc116_part_coarse import COARSE_PART_CLASSES, FINE_PART_CLASSES
 
+import torch
+
+import torch
+import torch.nn.functional as F
+from typing import List, Dict
+
+def compute_residual_feature(
+    gt_features_by_part: List[torch.Tensor],
+    gt_features_by_obj: List[torch.Tensor],
+    lambda_residual: float = 1.0,
+) -> Dict[str, torch.Tensor]:
+
+    part_names = ["aeroplane's body", "aeroplane's stern", "aeroplane's wing", "aeroplane's tail",
+                  "aeroplane's engine", "aeroplane's wheel", "bicycle's wheel", "bicycle's saddle",
+                  "bicycle's handlebar", "bicycle's chainwheel", "bicycle's headlight", "bird's wing",
+                  "bird's tail", "bird's head", "bird's eye", "bird's beak", "bird's torso", "bird's neck",
+                  "bird's leg", "bird's foot", "bottle's body", "bottle's cap", "bus's wheel",
+                  "bus's headlight", "bus's front", "bus's side", "bus's back", "bus's roof",
+                  "bus's mirror", "bus's license plate", "bus's door", "bus's window", "car's wheel",
+                  "car's headlight", "car's front", "car's side", "car's back", "car's roof",
+                  "car's mirror", "car's license plate", "car's door", "car's window", "cat's tail",
+                  "cat's head", "cat's eye", "cat's torso", "cat's neck", "cat's leg", "cat's nose",
+                  "cat's paw", "cat's ear", "cow's tail", "cow's head", "cow's eye", "cow's torso",
+                  "cow's neck", "cow's leg", "cow's ear", "cow's muzzle", "cow's horn", "dog's tail",
+                  "dog's head", "dog's eye", "dog's torso", "dog's neck", "dog's leg", "dog's nose",
+                  "dog's paw", "dog's ear", "dog's muzzle", "horse's tail", "horse's head", "horse's eye",
+                  "horse's torso", "horse's neck", "horse's leg", "horse's ear", "horse's muzzle",
+                  "horse's hoof", "motorbike's wheel", "motorbike's saddle", "motorbike's handlebar",
+                  "motorbike's headlight", "person's head", "person's eye", "person's torso",
+                  "person's neck", "person's leg", "person's foot", "person's nose", "person's ear",
+                  "person's eyebrow", "person's mouth", "person's hair", "person's lower arm",
+                  "person's upper arm", "person's hand", "pottedplant's pot", "pottedplant's plant",
+                  "sheep's tail", "sheep's head", "sheep's eye", "sheep's torso", "sheep's neck",
+                  "sheep's leg", "sheep's ear", "sheep's muzzle", "sheep's horn", "train's headlight",
+                  "train's head", "train's front", "train's side", "train's back", "train's roof",
+                  "train's coach", "tvmonitor's screen"]
+
+    obj_names = ["aeroplane", "bicycle", "bird", "bottle", "bus", "car", "cat", "cow",
+                 "dog", "horse", "motorbike", "person", "pottedplant", "sheep", "train", "tvmonitor"]
+
+    D = None
+    for feats in gt_features_by_part + gt_features_by_obj:
+        if feats is not None and feats.numel() > 0:
+            D = int(feats.shape[-1])
+            break
+    if D is None:
+        raise ValueError("No valid features found.")
+
+    # 直接复用现成的 mean_features_by_part
+    part_proto, _, _ = mean_features_by_part(gt_features_by_part, dim=D)
+    obj_proto, _, _ = mean_features_by_part(gt_features_by_obj, dim=D)
+
+    part_proto = part_proto.float()
+    obj_proto = obj_proto.float()
+
+    obj_map = {name: i for i, name in enumerate(obj_names)}
+
+    residual_list = []
+    for pid, pname in enumerate(part_names):
+        p = part_proto[pid]
+
+        obj_name = pname.split("'s")[0].strip()
+        oid = obj_map.get(obj_name, None)
+
+        if oid is None or oid >= obj_proto.shape[0]:
+            r = p
+        else:
+            o = F.normalize(obj_proto[oid].unsqueeze(0), dim=-1).squeeze(0)
+            proj = (p @ o) * o
+            r = p - lambda_residual * proj
+
+        r = F.normalize(r.unsqueeze(0), dim=-1).squeeze(0)
+        residual_list.append(r)
+
+    residual_features = torch.stack(residual_list, dim=0)
+
+    return {
+        "residual_features": residual_features,
+        "part_proto": part_proto,
+        "obj_proto": obj_proto,
+    }
 
 def get_part_names(num_parts: int) -> List[str]:
     if num_parts == 59:
@@ -231,6 +312,9 @@ class FeatureAnalyser:
         gt_feat_chunks: List[torch.Tensor] = []
         gt_pid_chunks: List[torch.Tensor] = []
 
+        obj_feat_chunks: List[torch.Tensor] = []
+        obj_cat_chunks: List[torch.Tensor] = []
+
         for batch in tqdm(
             self.loader,
             desc="collect instance-level fake/GT features by part",
@@ -246,6 +330,7 @@ class FeatureAnalyser:
             part_valid = batch["part_valid_mask"].bool()      # [B,K]
             part_gt = batch["part_gt_mask_patch"].bool()      # [B,K,N]
             part_ids = batch["part_category_id"].long()       # [B,K]
+            obj_ids = batch["category_id"].long()             # [B]
 
             part_proj = self.model.project_clip_txt(part_text)
             part_proj = self.loss_helper._safe_normalize(part_proj, dim=-1)
@@ -273,6 +358,11 @@ class FeatureAnalyser:
             gt_proto = gt_proto / gt_pix_cnt.clamp_min(1.0)[:, :, None]
             gt_proto = self.loss_helper._safe_normalize(gt_proto, dim=-1)
 
+            obj_gt_pix_cnt = obj_mask.sum(dim=-1).float() 
+            obj_gt_proto = torch.einsum("bn,bnd->bd", obj_mask.float(), patch_tokens)
+            obj_gt_proto = obj_gt_proto  / obj_gt_pix_cnt.clamp_min(1.0)[:, None]
+            obj_gt_proto = self.loss_helper._safe_normalize(obj_gt_proto, dim=-1)
+
             flat_pid = part_ids.reshape(-1)                                            # [B*K]
             valid_pid = (flat_pid >= 0) & (flat_pid < P)
 
@@ -281,6 +371,7 @@ class FeatureAnalyser:
 
             flat_fake = proto_part.reshape(-1, D)
             flat_gt = gt_proto.reshape(-1, D)
+            flat_obj_gt = obj_gt_proto.reshape(-1, D)
 
             if fake_valid.any():
                 fake_feat_chunks.append(flat_fake[fake_valid].detach().cpu())
@@ -290,16 +381,24 @@ class FeatureAnalyser:
                 gt_feat_chunks.append(flat_gt[gt_valid].detach().cpu())
                 gt_pid_chunks.append(flat_pid[gt_valid].detach().cpu())
 
+            if obj_ids.numel() > 0:
+                obj_feat_chunks.append(obj_gt_proto.detach().cpu())
+                obj_cat_chunks.append(obj_ids.detach().cpu())
+
         fake_features = cat_or_empty(fake_feat_chunks, (0, D), torch.float32)
         fake_part_ids = cat_or_empty(fake_pid_chunks, (0,), torch.long)
 
         gt_features = cat_or_empty(gt_feat_chunks, (0, D), torch.float32)
         gt_part_ids = cat_or_empty(gt_pid_chunks, (0,), torch.long)
 
+        obj_gt_features = cat_or_empty(obj_feat_chunks, (0, D), torch.float32)
+        obj_category_ids = cat_or_empty(obj_cat_chunks, (0,), torch.long)
+
         fake_features_by_part = self._group_by_part(fake_features, fake_part_ids, D)
         gt_features_by_part = self._group_by_part(gt_features, gt_part_ids, D)
+        obj_gt_features_by_obj= self._group_by_category(obj_gt_features, obj_category_ids, D, max_obj_slots=256)
 
-        return fake_features_by_part, gt_features_by_part
+        return fake_features_by_part, gt_features_by_part, obj_gt_features_by_obj
 
     @torch.no_grad()
     def collect_text_features(self, max_obj_slots: int = 256):

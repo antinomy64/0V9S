@@ -76,7 +76,7 @@ def encode_prompt_cache(model, prompt_cache, device, desc='Encoding prompt cache
 
 def run_bert_extraction(model_name, ann_path, batch_size, out_path, extract_dense_out=False, extract_second_last_dense_out=False,
                           write_as_wds=False, num_shards=25, n_in_splits=4, in_batch_offset=0, out_offset=0,
-                          use_caption_ensemble=False):
+                          use_caption_ensemble=False, part_residual=False, _lambda=1.0):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     if 'bert' in model_name:
@@ -134,16 +134,34 @@ def run_bert_extraction(model_name, ann_path, batch_size, out_path, extract_dens
                 )
 
                 for ann in tqdm(data['annotations'], desc='Assigning cached text features'):
-                    class_name = ann['class_name']
-                    ann[field_name] = obj_feat_cache[class_name]
+                        class_name = ann['class_name']
+                        obj_feat = obj_feat_cache[class_name]
+                        ann[field_name] = obj_feat
 
-                    part_names = ann.get('part_class_name', []) or []
-                    if len(part_names) > 0:
-                        ann['part_ann_feats'] = torch.stack(
-                            [part_feat_cache[name] for name in part_names], dim=0
-                        )
-                    else:
-                        ann['part_ann_feats'] = ann[field_name].new_zeros((0, ann[field_name].shape[-1]))
+                        part_names = ann.get('part_class_name', []) or []
+                        if len(part_names) > 0:
+                            part_feats = torch.stack([part_feat_cache[name] for name in part_names], dim=0)
+
+                            if part_residual:
+                                part_feats = part_feats.float()
+                                obj_feat = obj_feat.float()
+                                
+                                obj = obj_feat.squeeze(0)  # [D]
+                                obj = obj / (obj.norm() + 1e-6)
+
+                                proj_scalar = part_feats @ obj  # [K]
+                                proj = proj_scalar.unsqueeze(-1) * obj.unsqueeze(0)  # [K, D]
+
+                                part_feats = part_feats - _lambda * proj
+                                part_feats = part_feats / (part_feats.norm(dim=-1, keepdim=True) + 1e-6)
+
+                                part_feats = part_feats.half()
+                                obj_feat = obj_feat.half()
+
+
+                            ann['part_ann_feats'] = part_feats
+                        else:
+                            ann['part_ann_feats'] = obj_feat.new_zeros((0, obj_feat.shape[-1]))
                 break
             else:
                 inputs = clip.tokenize(texts, truncate=True).to(device)
@@ -165,7 +183,26 @@ def run_bert_extraction(model_name, ann_path, batch_size, out_path, extract_dens
                     # minimal additive part feature extraction
                     part_caption = data['annotations'][j].get('part_caption', None)
                     if part_caption is not None:
-                        data['annotations'][j]['part_ann_feats'] = encode_part_caption_ensemble(model, part_caption, device)
+                        part_feat = encode_part_caption_ensemble(model, part_caption, device)
+                        obj_feat = data['annotations'][j]['ann_feats'].unsqueeze(0)
+
+                        if part_residual:
+                            part_feat = part_feat.float()
+                            obj_feat = obj_feat.float()
+
+                            obj = obj_feat.squeeze(0)  # [D]
+                            obj = obj / (obj.norm() + 1e-6)
+
+                            proj_scalar = part_feat @ obj  # [K]
+                            proj = proj_scalar.unsqueeze(-1) * obj.unsqueeze(0)  # [K, D]
+
+                            part_feat = part_feat - _lambda * proj
+                            part_feat = part_feat / (part_feat.norm(dim=-1, keepdim=True) + 1e-6)
+                            
+                            part_feat = part_feat.half()
+                            obj_feat = obj_feat.half()
+                            
+                        data['annotations'][j]['part_ann_feats'] = part_feat
 
     print("Feature extraction done!")
 
@@ -194,10 +231,12 @@ def main():
     parser.add_argument('--in_batch_offset', type=int, default=0, help="Of the n_splits in which we have divided tars, we decide which of them elaborate")
     parser.add_argument('--out_offset', type=int, default=0, help="Index of the first shard to save")
     parser.add_argument('--use_caption_ensemble', action='store_true', default=False, help='If set, ann["caption"] can be a list of captions and their text features are averaged')
+    parser.add_argument('--part_residual', action='store_true')
+    parser.add_argument('--_lambda', type=float, default=1.0)
     args = parser.parse_args()
 
     run_bert_extraction(args.model, args.ann_path, args.batch_size, args.out_path, args.extract_dense_out, args.extract_second_last_dense_out,
                         args.write_as_wds, args.n_shards, args.n_in_splits, args.in_batch_offset, args.out_offset,
-                        args.use_caption_ensemble)
+                        args.use_caption_ensemble, args.part_residual, args._lambda)
 if __name__ == '__main__':
     main()
