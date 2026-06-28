@@ -20,6 +20,10 @@ class JointObjPartLoss(nn.Module):
         eps: float = 1e-6,
         em_iters: int = 3,
         present_only_anchor: bool = False,
+        use_dustbin_gate: bool = False,
+        dustbin_topk: int = 8,
+        dustbin_tau: float = 0.04,
+        dustbin_min_active_parts: int = 1,
     ):
         super().__init__()
         self.sim_model = sim_model
@@ -37,9 +41,157 @@ class JointObjPartLoss(nn.Module):
         self.eps = eps
         self.em_iters = int(em_iters)
         self.present_only_anchor = bool(present_only_anchor)
+        self.use_dustbin_gate = bool(use_dustbin_gate)
+        self.dustbin_topk = int(dustbin_topk)
+        self.dustbin_tau = float(dustbin_tau)
+        self.dustbin_min_active_parts = int(dustbin_min_active_parts)
 
     def _safe_normalize(self, x, dim=-1):
         return x / x.norm(dim=dim, keepdim=True).clamp_min(self.eps)
+
+    def _empty_dustbin_metrics(self, ref_tensor):
+        zero = ref_tensor.new_tensor(0.0)
+        return {
+            "dustbin_enabled": ref_tensor.new_tensor(1.0 if self.use_dustbin_gate else 0.0),
+            "dustbin_tau": ref_tensor.new_tensor(float(self.dustbin_tau)),
+            "dustbin_topk": ref_tensor.new_tensor(float(self.dustbin_topk)),
+            "dustbin_valid_parts": zero,
+            "dustbin_active_parts": zero,
+            "dustbin_dropped_parts": zero,
+            "dustbin_active_ratio": zero,
+            "dustbin_fallback_images": zero,
+            "dustbin_score_count": zero,
+            "dustbin_score_sum": zero,
+            "dustbin_score_sq_sum": zero,
+            "dustbin_score_mean": zero,
+            "dustbin_score_std": zero,
+            "dustbin_score_min": zero,
+            "dustbin_score_max": zero,
+            "dustbin_gt_present_total": zero,
+            "dustbin_gt_present_active": zero,
+            "dustbin_gt_present_dropped": zero,
+            "dustbin_gt_present_keep_rate": zero,
+            "dustbin_gt_absent_total": zero,
+            "dustbin_gt_absent_dropped": zero,
+            "dustbin_gt_absent_kept": zero,
+            "dustbin_gt_absent_drop_rate": zero,
+        }
+
+    @torch.no_grad()
+    def _compute_dustbin_gate(
+        self,
+        abs_logits,
+        obj_mask_patch,
+        part_valid_mask,
+        part_gt_mask_patch=None,
+    ):
+        """Estimate which candidate parts have reliable visual support.
+
+        This is a *training-time absent-part gate*, not an evaluation class.
+        It does not introduce background or a new part label.
+
+        The score is computed on cosine scale, not temperature-scaled logit scale:
+            presence_score = topk_mean(cosine(part, object_patches)) - mean(cosine(...))
+
+        A part is active iff presence_score > self.dustbin_tau.
+        If no part survives for an object, keep the best `dustbin_min_active_parts` parts
+        as a fallback so the part branch does not disappear completely.
+        """
+        B, K, _ = abs_logits.shape
+        device = abs_logits.device
+        active_part_mask = torch.zeros((B, K), dtype=torch.bool, device=device)
+
+        valid_total = 0.0
+        active_total = 0.0
+        fallback_images = 0.0
+
+        score_sum = 0.0
+        score_sq_sum = 0.0
+        score_count = 0.0
+        score_min = None
+        score_max = None
+
+        present_total = 0.0
+        present_active = 0.0
+        absent_total = 0.0
+        absent_dropped = 0.0
+
+        for b in range(B):
+            patch_idx = torch.nonzero(obj_mask_patch[b], as_tuple=False).squeeze(1)
+            valid_idx = torch.nonzero(part_valid_mask[b], as_tuple=False).squeeze(1)
+
+            if patch_idx.numel() == 0 or valid_idx.numel() == 0:
+                continue
+
+            # abs_logits is cosine / temperature. Convert back to cosine-like scale
+            # so tau values such as 0.02/0.04/0.06 are interpretable.
+            local_scores = (abs_logits[b, valid_idx][:, patch_idx] * self.patch_temperature).float()
+
+            k_eff = min(max(int(self.dustbin_topk), 1), local_scores.shape[1])
+            topk_vals = torch.topk(local_scores, k=k_eff, dim=-1).values
+            topk_mean = topk_vals.mean(dim=-1)
+            mean_score = local_scores.mean(dim=-1)
+            score = topk_mean - mean_score
+
+            keep = score > float(self.dustbin_tau)
+            if keep.sum().item() < int(self.dustbin_min_active_parts):
+                num_keep = min(int(self.dustbin_min_active_parts), int(valid_idx.numel()))
+                if num_keep > 0:
+                    best_local = torch.topk(score, k=num_keep, dim=0).indices
+                    keep = torch.zeros_like(keep, dtype=torch.bool)
+                    keep[best_local] = True
+                    fallback_images += 1.0
+
+            active_part_mask[b, valid_idx] = keep
+
+            valid_total += float(valid_idx.numel())
+            active_total += float(keep.long().sum().item())
+
+            score_sum += float(score.sum().item())
+            score_sq_sum += float((score ** 2).sum().item())
+            score_count += float(score.numel())
+            cur_min = float(score.min().item())
+            cur_max = float(score.max().item())
+            score_min = cur_min if score_min is None else min(score_min, cur_min)
+            score_max = cur_max if score_max is None else max(score_max, cur_max)
+
+            # GT part masks are used only for audit/debugging, not for gate decisions.
+            if part_gt_mask_patch is not None:
+                gt_present = (part_gt_mask_patch[b, valid_idx] & obj_mask_patch[b][None, :]).sum(dim=-1) > 0
+                present_total += float(gt_present.long().sum().item())
+                present_active += float((gt_present & keep).long().sum().item())
+
+                gt_absent = ~gt_present
+                absent_total += float(gt_absent.long().sum().item())
+                absent_dropped += float((gt_absent & ~keep).long().sum().item())
+
+        ref = abs_logits
+        metrics = self._empty_dustbin_metrics(ref)
+        metrics.update({
+            "dustbin_valid_parts": ref.new_tensor(valid_total),
+            "dustbin_active_parts": ref.new_tensor(active_total),
+            "dustbin_dropped_parts": ref.new_tensor(max(valid_total - active_total, 0.0)),
+            "dustbin_active_ratio": ref.new_tensor(0.0 if valid_total <= 0 else active_total / valid_total),
+            "dustbin_fallback_images": ref.new_tensor(fallback_images),
+            "dustbin_score_count": ref.new_tensor(score_count),
+            "dustbin_score_sum": ref.new_tensor(score_sum),
+            "dustbin_score_sq_sum": ref.new_tensor(score_sq_sum),
+            "dustbin_score_mean": ref.new_tensor(0.0 if score_count <= 0 else score_sum / score_count),
+            "dustbin_score_std": ref.new_tensor(
+                0.0 if score_count <= 0 else max(score_sq_sum / score_count - (score_sum / score_count) ** 2, 0.0) ** 0.5
+            ),
+            "dustbin_score_min": ref.new_tensor(0.0 if score_min is None else score_min),
+            "dustbin_score_max": ref.new_tensor(0.0 if score_max is None else score_max),
+            "dustbin_gt_present_total": ref.new_tensor(present_total),
+            "dustbin_gt_present_active": ref.new_tensor(present_active),
+            "dustbin_gt_present_dropped": ref.new_tensor(max(present_total - present_active, 0.0)),
+            "dustbin_gt_present_keep_rate": ref.new_tensor(0.0 if present_total <= 0 else present_active / present_total),
+            "dustbin_gt_absent_total": ref.new_tensor(absent_total),
+            "dustbin_gt_absent_dropped": ref.new_tensor(absent_dropped),
+            "dustbin_gt_absent_kept": ref.new_tensor(max(absent_total - absent_dropped, 0.0)),
+            "dustbin_gt_absent_drop_rate": ref.new_tensor(0.0 if absent_total <= 0 else absent_dropped / absent_total),
+        })
+        return active_part_mask, metrics
 
     def forward(self, batch):
         obj_feat = batch["obj_feat"]
@@ -82,6 +234,7 @@ class JointObjPartLoss(nn.Module):
                 "anchor_hit_rate": zero.detach(),
                 "anchor_total_valid_parts": zero.detach(),
                 "anchor_total_hits": zero.detach(),
+                **{k: v.detach() for k, v in self._empty_dustbin_metrics(zero).items()},
             }
 
         # Project text features into the same space as patch tokens.
@@ -94,6 +247,30 @@ class JointObjPartLoss(nn.Module):
         # Absolute part-patch score map inside the object.
         abs_logits = torch.einsum("bkd,bnd->bkn", part_proj, patch_tokens) / self.patch_temperature
         abs_logits = abs_logits.masked_fill(~obj_mask_patch[:, None, :], -1e4)
+
+        dustbin_metrics = self._empty_dustbin_metrics(abs_logits)
+        if getattr(self, "use_dustbin_gate", False):
+            active_part_mask, dustbin_metrics = self._compute_dustbin_gate(
+                abs_logits=abs_logits.detach(),
+                obj_mask_patch=obj_mask_patch,
+                part_valid_mask=part_train_mask,
+                part_gt_mask_patch=part_gt_mask_patch,
+            )
+            part_train_mask = part_train_mask & active_part_mask
+
+        if not part_train_mask.any():
+            total = self.lambda_obj * obj_loss
+            return {
+                "total": total,
+                "obj": obj_loss.detach(),
+                "inst": zero.detach(),
+                "overlap": zero.detach(),
+                "spear": zero.detach(),
+                "anchor_hit_rate": zero.detach(),
+                "anchor_total_valid_parts": zero.detach(),
+                "anchor_total_hits": zero.detach(),
+                **{k: v.detach() for k, v in dustbin_metrics.items()},
+            }
 
         z_part, _, anchor_metrics = self._anchor_proto_em_pool(
             patch_tokens=patch_tokens,
@@ -147,6 +324,7 @@ class JointObjPartLoss(nn.Module):
             "anchor_hit_rate": anchor_metrics["anchor_hit_rate"].detach(),
             "anchor_total_valid_parts": anchor_metrics["anchor_total_valid_parts"].detach(),
             "anchor_total_hits": anchor_metrics["anchor_total_hits"].detach(),
+            **{k: v.detach() for k, v in dustbin_metrics.items()},
         }
 
     def _compute_relative_scores(self, local_scores: torch.Tensor) -> torch.Tensor:

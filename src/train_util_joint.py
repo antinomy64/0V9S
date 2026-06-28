@@ -87,6 +87,12 @@ def _detach_metric_dict(metrics: Dict) -> Dict:
     return out
 
 
+def _as_float(value):
+    if torch.is_tensor(value):
+        return float(value.detach().float().cpu().item())
+    return float(value)
+
+
 def _mean_dict(list_of_dicts):
     if len(list_of_dicts) == 0:
         return {}
@@ -98,23 +104,91 @@ def _mean_dict(list_of_dicts):
         total_valid = 0.0
         total_hits = 0.0
         for d in list_of_dicts:
-            v_valid = d["anchor_total_valid_parts"]
-            v_hits = d["anchor_total_hits"]
-            if torch.is_tensor(v_valid):
-                total_valid += float(v_valid.detach().float().cpu().item())
-            else:
-                total_valid += float(v_valid)
-            if torch.is_tensor(v_hits):
-                total_hits += float(v_hits.detach().float().cpu().item())
-            else:
-                total_hits += float(v_hits)
+            total_valid += _as_float(d["anchor_total_valid_parts"])
+            total_hits += _as_float(d["anchor_total_hits"])
 
         out["anchor_total_valid_parts"] = total_valid
         out["anchor_total_hits"] = total_hits
         out["anchor_hit_rate"] = 0.0 if total_valid <= 0 else total_hits / total_valid
 
+    # Dustbin audit metrics: aggregate counts globally, then derive rates.
+    dustbin_count_keys = {
+        "dustbin_valid_parts",
+        "dustbin_active_parts",
+        "dustbin_dropped_parts",
+        "dustbin_fallback_images",
+        "dustbin_score_count",
+        "dustbin_score_sum",
+        "dustbin_score_sq_sum",
+        "dustbin_gt_present_total",
+        "dustbin_gt_present_active",
+        "dustbin_gt_present_dropped",
+        "dustbin_gt_absent_total",
+        "dustbin_gt_absent_dropped",
+        "dustbin_gt_absent_kept",
+    }
+    dustbin_derived_keys = {
+        "dustbin_active_ratio",
+        "dustbin_score_mean",
+        "dustbin_score_std",
+        "dustbin_score_min",
+        "dustbin_score_max",
+        "dustbin_gt_present_keep_rate",
+        "dustbin_gt_absent_drop_rate",
+    }
+    if "dustbin_valid_parts" in keys:
+        for k in dustbin_count_keys:
+            if k in keys:
+                out[k] = sum(_as_float(d[k]) for d in list_of_dicts)
+
+        # min/max need special aggregation.
+        if "dustbin_score_min" in keys:
+            mins = [_as_float(d["dustbin_score_min"]) for d in list_of_dicts if _as_float(d.get("dustbin_score_count", 0.0)) > 0]
+            out["dustbin_score_min"] = min(mins) if len(mins) > 0 else 0.0
+        if "dustbin_score_max" in keys:
+            maxs = [_as_float(d["dustbin_score_max"]) for d in list_of_dicts if _as_float(d.get("dustbin_score_count", 0.0)) > 0]
+            out["dustbin_score_max"] = max(maxs) if len(maxs) > 0 else 0.0
+
+        valid = out.get("dustbin_valid_parts", 0.0)
+        active = out.get("dustbin_active_parts", 0.0)
+        out["dustbin_active_ratio"] = 0.0 if valid <= 0 else active / valid
+
+        score_count = out.get("dustbin_score_count", 0.0)
+        score_sum = out.get("dustbin_score_sum", 0.0)
+        score_sq_sum = out.get("dustbin_score_sq_sum", 0.0)
+        if score_count > 0:
+            score_mean = score_sum / score_count
+            score_var = max(score_sq_sum / score_count - score_mean ** 2, 0.0)
+            out["dustbin_score_mean"] = score_mean
+            out["dustbin_score_std"] = float(score_var ** 0.5)
+        else:
+            out["dustbin_score_mean"] = 0.0
+            out["dustbin_score_std"] = 0.0
+
+        present_total = out.get("dustbin_gt_present_total", 0.0)
+        present_active = out.get("dustbin_gt_present_active", 0.0)
+        out["dustbin_gt_present_keep_rate"] = 0.0 if present_total <= 0 else present_active / present_total
+
+        absent_total = out.get("dustbin_gt_absent_total", 0.0)
+        absent_dropped = out.get("dustbin_gt_absent_dropped", 0.0)
+        out["dustbin_gt_absent_drop_rate"] = 0.0 if absent_total <= 0 else absent_dropped / absent_total
+
+        # Average static settings for logging.
+        if "dustbin_enabled" in keys:
+            out["dustbin_enabled"] = sum(_as_float(d["dustbin_enabled"]) for d in list_of_dicts) / len(list_of_dicts)
+        if "dustbin_tau" in keys:
+            out["dustbin_tau"] = sum(_as_float(d["dustbin_tau"]) for d in list_of_dicts) / len(list_of_dicts)
+        if "dustbin_topk" in keys:
+            out["dustbin_topk"] = sum(_as_float(d["dustbin_topk"]) for d in list_of_dicts) / len(list_of_dicts)
+
+    skip_keys = {
+        "anchor_hit_rate", "anchor_total_valid_parts", "anchor_total_hits",
+        *dustbin_count_keys, *dustbin_derived_keys,
+        "dustbin_enabled", "dustbin_tau", "dustbin_topk",
+    }
+
     for k in keys:
-        if k in {"anchor_hit_rate", "anchor_total_valid_parts", "anchor_total_hits"}:
+        if k in skip_keys:
             continue
         vals = []
         for d in list_of_dicts:
@@ -148,10 +222,14 @@ def train_joint(model, train_dataloader, criterion, optimizer, scheduler=None, e
         optimizer.step()
 
         running.append(_detach_metric_dict(losses))
+        db_active = losses.get("dustbin_active_ratio", torch.tensor(0.0, device=total_loss.device))
+        db_keep = losses.get("dustbin_gt_present_keep_rate", torch.tensor(0.0, device=total_loss.device))
+        db_drop = losses.get("dustbin_gt_absent_drop_rate", torch.tensor(0.0, device=total_loss.device))
         pbar.set_description(
             f"train total={losses['total'].item():.4f} obj={losses['obj'].item():.4f} "
             f"inst={losses['inst'].item():.4f} overlap={losses['overlap'].item():.4f} "
-            f"spear={losses['spear'].item():.4f} anchor={losses['anchor_hit_rate'].item():.4f}"
+            f"spear={losses['spear'].item():.4f} anchor={losses['anchor_hit_rate'].item():.4f} "
+            f"db_active={float(db_active):.3f} gt_keep={float(db_keep):.3f} absent_drop={float(db_drop):.3f}"
         )
 
     return _mean_dict(running)
@@ -168,10 +246,14 @@ def validate_joint(model, val_dataloader, criterion):
         batch = _move_joint_batch_to_device(batch, device)
         losses = criterion(batch)
         running.append(_detach_metric_dict(losses))
+        db_active = losses.get("dustbin_active_ratio", torch.tensor(0.0, device=device))
+        db_keep = losses.get("dustbin_gt_present_keep_rate", torch.tensor(0.0, device=device))
+        db_drop = losses.get("dustbin_gt_absent_drop_rate", torch.tensor(0.0, device=device))
         pbar.set_description(
             f"val total={losses['total'].item():.4f} obj={losses['obj'].item():.4f} "
             f"inst={losses['inst'].item():.4f} overlap={losses['overlap'].item():.4f} "
-            f"spear={losses['spear'].item():.4f} anchor={losses['anchor_hit_rate'].item():.4f}"
+            f"spear={losses['spear'].item():.4f} anchor={losses['anchor_hit_rate'].item():.4f} "
+            f"db_active={float(db_active):.3f} gt_keep={float(db_keep):.3f} absent_drop={float(db_drop):.3f}"
         )
 
     return _mean_dict(running)
@@ -206,6 +288,11 @@ def do_train_joint(
     em_iters = int(train_cfg.get('em_iters', 3))
     present_only_anchor = train_cfg.get('present_only_anchor', False)
 
+    use_dustbin_gate = bool(train_cfg.get('use_dustbin_gate', False))
+    dustbin_topk = int(train_cfg.get('dustbin_topk', 8))
+    dustbin_tau = float(train_cfg.get('dustbin_tau', 0.04))
+    dustbin_min_active_parts = int(train_cfg.get('dustbin_min_active_parts', 1))
+
     print(
         "[joint config] "
         f"lambda_obj={lambda_obj}, "
@@ -214,6 +301,10 @@ def do_train_joint(
         f"lambda_spear={lambda_spear}, "
         f"em_iters={em_iters}, "
         f"present_only_anchor={present_only_anchor}, "
+        f"use_dustbin_gate={use_dustbin_gate}, "
+        f"dustbin_topk={dustbin_topk}, "
+        f"dustbin_tau={dustbin_tau}, "
+        f"dustbin_min_active_parts={dustbin_min_active_parts}, "
         f"min_obj_area_ratio={getattr(train_dataset, 'min_obj_area_ratio', 0.0)}"
     )
     if present_only_anchor:
@@ -248,6 +339,10 @@ def do_train_joint(
         lambda_spear=lambda_spear,
         patch_temperature=patch_temperature,
         em_iters=em_iters,
+        use_dustbin_gate=use_dustbin_gate,
+        dustbin_topk=dustbin_topk,
+        dustbin_tau=dustbin_tau,
+        dustbin_min_active_parts=dustbin_min_active_parts,
     )
     criterion.present_only_anchor = present_only_anchor
 
@@ -286,7 +381,11 @@ def do_train_joint(
         print(
             f"Epoch {epoch}: "
             f"train_total={train_metrics['total']:.4f}, val_total={val_metrics['total']:.4f}, "
-            f"anchor_hit_rate={val_metrics.get('anchor_hit_rate', 0.0):.4f}"
+            f"anchor_hit_rate={val_metrics.get('anchor_hit_rate', 0.0):.4f}, "
+            f"db_active={val_metrics.get('dustbin_active_ratio', 0.0):.4f}, "
+            f"gt_present_keep={val_metrics.get('dustbin_gt_present_keep_rate', 0.0):.4f}, "
+            f"gt_absent_drop={val_metrics.get('dustbin_gt_absent_drop_rate', 0.0):.4f}, "
+            f"fallback={val_metrics.get('dustbin_fallback_images', 0.0):.0f}"
         )
     
     return model, train_history, val_history

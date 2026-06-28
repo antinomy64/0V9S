@@ -1,4 +1,3 @@
-
 from copy import deepcopy
 import os
 from pathlib import Path
@@ -53,7 +52,7 @@ def cosine_lr(optimizer, base_lr, warmup_length, steps):
             lr = _warmup_lr(base_lr, warmup_length, step)
         else:
             e = step - warmup_length
-            es = steps - warmup_length
+            es = max(steps - warmup_length, 1)
             lr = 0.5 * (1 + np.cos(np.pi * e / es)) * base_lr
         assign_learning_rate(optimizer, lr)
         return lr
@@ -70,14 +69,8 @@ def _move_batch_to_device(batch: Dict, device: torch.device) -> Dict:
     return moved
 
 
-
-
 def _detach_metric_dict(metrics: Dict) -> Dict:
-    """Detach tensors before storing epoch statistics.
-
-    Keeping the original loss dictionary would retain the computation graph
-    referenced by ``total`` for the whole epoch.
-    """
+    """Detach tensors before storing epoch statistics."""
     out = {}
     for key, value in metrics.items():
         if torch.is_tensor(value):
@@ -86,13 +79,13 @@ def _detach_metric_dict(metrics: Dict) -> Dict:
             out[key] = value
     return out
 
+
 def _mean_dict(list_of_dicts):
     if len(list_of_dicts) == 0:
         return {}
     keys = list(list_of_dicts[0].keys())
     out = {}
 
-    # Anchor metrics should be aggregated by counts, not by simple batch mean.
     if "anchor_total_valid_parts" in keys and "anchor_total_hits" in keys:
         total_valid = 0.0
         total_hits = 0.0
@@ -127,7 +120,6 @@ def _mean_dict(list_of_dicts):
 
 
 def _build_part_name_map(joint_dataset) -> Dict[int, str]:
-    """Build part-id -> part-name mapping from the existing dataset metadata."""
     samples = (
         joint_dataset.data.values()
         if isinstance(joint_dataset.data, dict)
@@ -161,87 +153,7 @@ def _anchor_gt_name(part_ids, part_name_map: Dict[int, str]) -> str:
     return "|".join(_part_name(pid, part_name_map) for pid in part_ids)
 
 
-# @torch.no_grad()
-# def audit_full_train_pool(
-#     model,
-#     train_pool_dataset,
-#     criterion,
-#     epoch: int,
-#     out_txt: str,
-#     part_name_map: Dict[int, str],
-# ):
-#     """
-#     Audit the complete category pools after one training epoch.
-
-#     For each projected part text feature, print:
-#       target text -> anchor patch GT -> nearest GT prototype to EM pseudo prototype.
-#     """
-#     model.eval()
-#     criterion.eval()
-#     device = next(model.parameters()).device
-
-#     lines = []
-#     lines.append("=" * 150)
-#     lines.append(f"[epoch {epoch:03d}] full_train_global_pool")
-#     lines.append("")
-#     lines.append(
-#         f"{'cat':>4}  "
-#         f"{'target_id':>9}  "
-#         f"{'target_text':<38}  "
-#         f"{'anchor_patch_GT':<38}  "
-#         f"{'pseudo_proto_nearest_GT':<38}  "
-#         f"{'cos':>8}"
-#     )
-#     lines.append("-" * 150)
-
-#     for cat in train_pool_dataset.categories:
-#         # Use the stored complete pool directly, not __getitem__(), because
-#         # __getitem__() may randomly subsample sample_patches_per_step patches.
-#         full_item = train_pool_dataset.pools[cat]
-#         batch = global_pool_collate_fn([full_item])
-#         batch = _move_batch_to_device(batch, device)
-
-#         records = criterion.audit_anchor_and_proto(batch)
-
-#         for record in records:
-#             target_id = int(record["target_part_id"])
-#             nearest_id = int(record["pseudo_proto_nearest_gt_part_id"])
-#             nearest_cos = float(record["pseudo_proto_nearest_gt_cos"])
-
-#             target_name = _part_name(target_id, part_name_map)
-#             anchor_name = _anchor_gt_name(
-#                 record["anchor_gt_part_ids"],
-#                 part_name_map,
-#             )
-#             nearest_name = _part_name(nearest_id, part_name_map)
-
-#             cos_text = "nan" if not np.isfinite(nearest_cos) else f"{nearest_cos:.4f}"
-
-#             lines.append(
-#                 f"{int(record['category_id']):>4d}  "
-#                 f"{target_id:>9d}  "
-#                 f"{target_name:<38.38}  "
-#                 f"{anchor_name:<38.38}  "
-#                 f"{nearest_name:<38.38}  "
-#                 f"{cos_text:>8}"
-#             )
-
-#         del batch, records
-#         if torch.cuda.is_available():
-#             torch.cuda.empty_cache()
-
-#     lines.append("=" * 150)
-#     text = "\n".join(lines)
-
-#     print("")
-#     print(text)
-
-#     out_path = Path(out_txt)
-#     out_path.parent.mkdir(parents=True, exist_ok=True)
-#     with out_path.open("a", encoding="utf-8") as f:
-#         f.write(text)
-#         f.write("\n\n")
-#         f.flush()
+# The full-pool textual audit is kept commented, same as the original file.
 
 
 def build_cached_train_gt_prototypes(
@@ -251,18 +163,9 @@ def build_cached_train_gt_prototypes(
 ):
     """Precompute train GT visual part prototypes exactly once.
 
-    This uses the already-built complete category pools, so it does not reload
-    the dataset or change the training pipeline.  For every semantic part that
-    has at least one GT-covered patch, cache:
-
-      * its original text feature;
-      * its GT visual prototype (mean of normalized GT-covered patch tokens,
-        followed by L2 normalization);
-      * its global part id.
-
-    The calculation is chunked to avoid converting a very large category pool
-    to float32 all at once.  The returned tensors are small (about 116 rows for
-    fine VOC116) and can be kept on GPU during training.
+    In dual-select/target mode, this deliberately uses item["patch_tokens"],
+    which is an alias of patch_tokens_target/raw tokens in dataset_global.py.
+    The cache is audit-only and never enters the loss.
     """
     text_features = []
     gt_prototypes = []
@@ -270,9 +173,9 @@ def build_cached_train_gt_prototypes(
 
     for cat in train_pool_dataset.categories:
         item = train_pool_dataset.pools[cat]
-        patch_tokens = item["patch_tokens"]          # [M, D], normally CPU float16
-        part_gt_mask = item["part_gt_mask_patch"].bool()  # [K, M]
-        part_text_feat = item["part_text_feat"].float()   # [K, Dt]
+        patch_tokens = item["patch_tokens"]                 # target/raw tokens [M, D]
+        part_gt_mask = item["part_gt_mask_patch"].bool()     # [K, M]
+        part_text_feat = item["part_text_feat"].float()      # [K, Dt]
         part_category_id = item["part_category_id"].long()
 
         if patch_tokens.ndim != 2 or part_gt_mask.ndim != 2:
@@ -332,11 +235,6 @@ def build_cached_train_gt_prototypes(
 
 @torch.no_grad()
 def cached_projected_text_gt_proto_cosine(model, gt_proto_cache) -> float:
-    """Project cached part text features and average paired GT-prototype cosine.
-
-    This performs no patch-pool scan.  Per epoch, the work is only one text
-    projection over the cached semantic parts and one row-wise cosine mean.
-    """
     model.eval()
     device = next(model.parameters()).device
 
@@ -406,6 +304,7 @@ def validate(model, val_dataloader, criterion):
 
     return _mean_dict(running)
 
+
 def do_train(
     model,
     train_dataset,
@@ -418,6 +317,8 @@ def do_train(
     warmup: int = 0,
     eval_proj_name: str = "",
     audit_out_txt: str = "",
+    train_select_dataset=None,
+    val_select_dataset=None,
 ):
     set_seed(seed)
 
@@ -438,28 +339,14 @@ def do_train(
     patch_temperature = train_cfg.get('patch_temperature', 0.07)
     em_iters = int(train_cfg.get('em_iters', 3))
     present_only_anchor = bool(train_cfg.get('present_only_anchor', False))
+    anchor_matcher = train_cfg.get('anchor_matcher', 'greedy')
+    anchor_score_type = train_cfg.get('anchor_score_type', 'relative')
     sample_patches_per_step = train_cfg.get("sample_patches_per_step", 65536)
     global_steps_per_epoch = train_cfg.get("global_steps_per_epoch", None)
 
     if not eval_proj_name:
         raise ValueError("eval_proj_name must be provided for mIoU evaluation.")
 
-    # if not audit_out_txt:
-    #     audit_out_txt = os.path.join(
-    #         "audits",
-    #         f"{eval_proj_name}_anchor_proto_audit.txt",
-    #     )
-
-    # audit_path = Path(audit_out_txt)
-    # audit_path.parent.mkdir(parents=True, exist_ok=True)
-    # with audit_path.open("w", encoding="utf-8") as f:
-    #     f.write(
-    #         "target text -> anchor patch GT -> EM pseudo prototype nearest GT prototype\n\n"
-    #     )
-    # print(f"[audit] anchor/prototype audit will be saved to: {audit_out_txt}")
-
-    # part_name_map = _build_part_name_map(train_dataset)
-    
     print(
         "[config] "
         f"lambda_inst={lambda_inst}, "
@@ -467,8 +354,15 @@ def do_train(
         f"lambda_spear={lambda_spear}, "
         f"em_iters={em_iters}, "
         f"present_only_anchor={present_only_anchor}, "
+        f"anchor_matcher={anchor_matcher}, "
+        f"anchor_score_type={anchor_score_type}, "
         f"min_obj_area_ratio={getattr(train_dataset, 'min_obj_area_ratio', 0.0)}"
     )
+    if train_select_dataset is not None:
+        print("[dual V] select dataset is different from target dataset: selection=CORAL/other, target=raw/target.")
+    else:
+        print("[dual V] select dataset is None: selection tokens == target tokens.")
+
     if present_only_anchor:
         print(
             "[oracle] present_only_anchor=True: only GT-present parts are used "
@@ -477,6 +371,7 @@ def do_train(
 
     train_pool_dataset = CategoryPatchPoolDataset(
         train_dataset,
+        select_joint_dataset=train_select_dataset,
         sample_patches_per_step=sample_patches_per_step,
         steps_per_epoch=global_steps_per_epoch,
         store_dtype=torch.float16,
@@ -484,6 +379,7 @@ def do_train(
     )
     val_pool_dataset = CategoryPatchPoolDataset(
         val_dataset,
+        select_joint_dataset=val_select_dataset,
         sample_patches_per_step=sample_patches_per_step,
         steps_per_epoch=None,
         store_dtype=torch.float16,
@@ -491,7 +387,7 @@ def do_train(
         fixed_subsample=True,
     )
 
-    # Build GT prototypes once.  This is an audit-only cache and never enters loss.
+    # Build GT prototypes once. This audit cache uses target/raw tokens via item["patch_tokens"].
     gt_proto_cache = build_cached_train_gt_prototypes(train_pool_dataset)
 
     train_dataloader = DataLoader(
@@ -517,8 +413,10 @@ def do_train(
         topk_ratio=topk_ratio,
         patch_temperature=patch_temperature,
         em_iters=em_iters,
+        present_only_anchor=present_only_anchor,
+        anchor_matcher=anchor_matcher,
+        anchor_score_type=anchor_score_type,
     )
-    criterion.present_only_anchor = present_only_anchor
 
     if optimizer_name == "Adam":
         optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -555,21 +453,11 @@ def do_train(
         train_metrics = train(model, train_dataloader, criterion, optimizer, scheduler=scheduler, epoch=epoch)
         val_metrics = validate(model, val_dataloader, criterion)
 
-        # Almost-free oracle audit metric: cached GT prototypes, no pool scan.
         full_train_gt_proto_cos = cached_projected_text_gt_proto_cosine(
             model,
             gt_proto_cache,
         )
         train_metrics["full_train_gt_proto_cos"] = full_train_gt_proto_cos
-
-        # audit_full_train_pool(
-        #     model=model,
-        #     train_pool_dataset=train_pool_dataset,
-        #     criterion=criterion,
-        #     epoch=epoch,
-        #     out_txt=audit_out_txt,
-        #     part_name_map=part_name_map,
-        # )
 
         train_history.append(train_metrics)
         val_history.append(val_metrics)

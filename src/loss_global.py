@@ -72,8 +72,19 @@ class PartLoss(nn.Module):
             "anchor_total_hits": zero.detach(),
         }
 
+    def _get_dual_patch_tokens(self, batch):
+        patch_tokens_target = batch.get("patch_tokens_target", batch["patch_tokens"])
+        patch_tokens_select = batch.get("patch_tokens_select", patch_tokens_target)
+        if patch_tokens_select.shape != patch_tokens_target.shape:
+            raise ValueError(
+                "patch_tokens_select and patch_tokens_target must have the same shape, got "
+                f"select={tuple(patch_tokens_select.shape)}, "
+                f"target={tuple(patch_tokens_target.shape)}"
+            )
+        return patch_tokens_select, patch_tokens_target
+
     def forward(self, batch):
-        patch_tokens = batch["patch_tokens"]
+        patch_tokens_select, patch_tokens_target = self._get_dual_patch_tokens(batch)
         obj_text_feat = batch["obj_text_feat"]
         part_text_feat = batch["part_text_feat"]
         obj_mask_patch = batch["obj_mask_patch"].bool()
@@ -86,7 +97,6 @@ class PartLoss(nn.Module):
             obj_mask_patch=obj_mask_patch,
         )
 
-        # Robustness guard for empty categories / empty sampled pools.
         if part_text_feat.shape[1] == 0 or not part_anchor_mask.any() or not obj_mask_patch.any():
             return self._empty_output(obj_text_feat)
 
@@ -94,14 +104,18 @@ class PartLoss(nn.Module):
         obj_proj = self.sim_model.project_clip_txt(obj_text_feat.float())    # [B, D]
         part_proj = self._safe_normalize(part_proj, dim=-1)
         obj_proj = self._safe_normalize(obj_proj, dim=-1)
-        patch_tokens = self._safe_normalize(patch_tokens.float(), dim=-1)
 
-        abs_logits = torch.einsum("bkd,bnd->bkn", part_proj, patch_tokens)
+        # Important: selection tokens drive anchor/EM/overlap. Target tokens drive z_proto.
+        patch_tokens_select = self._safe_normalize(patch_tokens_select.float(), dim=-1)
+        patch_tokens_target = self._safe_normalize(patch_tokens_target.float(), dim=-1)
+
+        abs_logits = torch.einsum("bkd,bnd->bkn", part_proj, patch_tokens_select)
         abs_logits = abs_logits / self.patch_temperature
         abs_logits = abs_logits.masked_fill(~obj_mask_patch[:, None, :], -1e4)
 
-        z_proto, _, anchor_metrics = self._anchor_proto_em_pool(
-            patch_tokens=patch_tokens,
+        z_proto, _, anchor_metrics = self._anchor_proto_em_pool_dual(
+            patch_tokens_select=patch_tokens_select,
+            patch_tokens_target=patch_tokens_target,
             abs_logits=abs_logits,
             obj_mask_patch=obj_mask_patch,
             part_valid_mask=part_anchor_mask,
@@ -147,11 +161,12 @@ class PartLoss(nn.Module):
         """
         Audit anchor and EM pseudo prototype semantics.
 
-        GT masks are used only here for reporting:
-          - which GT part covers the selected anchor patch;
-          - which GT part prototype is nearest to the EM pseudo prototype.
+        In dual mode:
+          - selection tokens are used for anchor / EM assignment;
+          - target tokens are used for final pseudo prototype and GT prototype comparison.
+        GT masks are used only here for reporting.
         """
-        patch_tokens = batch["patch_tokens"]
+        patch_tokens_select, patch_tokens_target = self._get_dual_patch_tokens(batch)
         part_text_feat = batch["part_text_feat"]
         obj_mask_patch = batch["obj_mask_patch"].bool()
         part_valid_mask = batch["part_valid_mask"].bool()
@@ -172,14 +187,16 @@ class PartLoss(nn.Module):
 
         part_proj = self.sim_model.project_clip_txt(part_text_feat.float())
         part_proj = self._safe_normalize(part_proj, dim=-1)
-        patch_tokens = self._safe_normalize(patch_tokens.float(), dim=-1)
+        patch_tokens_select = self._safe_normalize(patch_tokens_select.float(), dim=-1)
+        patch_tokens_target = self._safe_normalize(patch_tokens_target.float(), dim=-1)
 
-        abs_logits = torch.einsum("bkd,bnd->bkn", part_proj, patch_tokens)
+        abs_logits = torch.einsum("bkd,bnd->bkn", part_proj, patch_tokens_select)
         abs_logits = abs_logits / self.patch_temperature
         abs_logits = abs_logits.masked_fill(~obj_mask_patch[:, None, :], -1e4)
 
-        z_proto, _, _, anchor_indices, anchor_valid = self._anchor_proto_em_pool(
-            patch_tokens=patch_tokens,
+        z_proto, _, _, anchor_indices, anchor_valid = self._anchor_proto_em_pool_dual(
+            patch_tokens_select=patch_tokens_select,
+            patch_tokens_target=patch_tokens_target,
             abs_logits=abs_logits,
             obj_mask_patch=obj_mask_patch,
             part_valid_mask=part_anchor_mask,
@@ -204,7 +221,8 @@ class PartLoss(nn.Module):
                 if not bool(gt_mask.any().item()):
                     continue
 
-                gt_proto = patch_tokens[b, gt_mask].mean(dim=0)
+                # Compare pseudo target to target/raw GT prototypes.
+                gt_proto = patch_tokens_target[b, gt_mask].mean(dim=0)
                 gt_proto = self._safe_normalize(gt_proto, dim=-1)
 
                 valid_gt_slots.append(j)
@@ -248,12 +266,6 @@ class PartLoss(nn.Module):
         return records
 
     def _compute_relative_scores(self, local_scores: torch.Tensor) -> torch.Tensor:
-        """
-        Relative score used by the old anchor selector.
-
-        rel_score(part_i, patch_n) =
-            score(part_i, patch_n) - best score of any other part on patch_n
-        """
         Kb, _ = local_scores.shape
         if Kb <= 1:
             return local_scores
@@ -284,15 +296,6 @@ class PartLoss(nn.Module):
         raise RuntimeError(f"Invalid anchor_matcher: {self.anchor_matcher}")
 
     def _select_anchor_indices_hungarian(self, match_scores: torch.Tensor) -> torch.Tensor:
-        """
-        One-to-one part-anchor assignment.
-
-        Args:
-            match_scores: [Kb, Mb], higher is better.
-
-        Returns:
-            anchor_idx_local: [Kb], local patch index for each local part.
-        """
         Kb, Mb = match_scores.shape
         device = match_scores.device
 
@@ -307,8 +310,6 @@ class PartLoss(nn.Module):
         col_ind = torch.as_tensor(col_ind, dtype=torch.long, device=device)
         anchor_idx_local[row_ind] = col_ind
 
-        # If Mb < Kb, rectangular Hungarian can only assign Mb rows.
-        # Fill the remaining parts with their individual best patch, allowing duplicates.
         unassigned = torch.nonzero(anchor_idx_local < 0, as_tuple=False).squeeze(1)
         if unassigned.numel() > 0:
             local_best = match_scores.argmax(dim=1)
@@ -317,9 +318,6 @@ class PartLoss(nn.Module):
         return anchor_idx_local
 
     def _select_anchor_indices_greedy(self, match_scores: torch.Tensor) -> torch.Tensor:
-        """
-        Old greedy row/column deletion, kept for ablation.
-        """
         Kb, Mb = match_scores.shape
         device = match_scores.device
 
@@ -349,27 +347,27 @@ class PartLoss(nn.Module):
 
         return anchor_idx_local
 
-    def _slice_valid_pool(
+    def _slice_valid_pool_dual(
         self,
-        patch_tokens_b,
+        patch_tokens_select_b,
+        patch_tokens_target_b,
         abs_logits_b,
         obj_mask_patch_b,
         part_gt_mask_patch_b,
         valid_part_idx,
     ):
-        """
-        Return the valid object-pool tokens and corresponding local score/mask tensors.
-        """
         if bool(obj_mask_patch_b.all()):
-            valid_patch_tokens = patch_tokens_b
+            valid_select = patch_tokens_select_b
+            valid_target = patch_tokens_target_b
             local_scores = abs_logits_b[valid_part_idx]
             gt_masks_local = part_gt_mask_patch_b[valid_part_idx]
             valid_patch_idx_global = torch.arange(
-                patch_tokens_b.shape[0],
-                device=patch_tokens_b.device,
+                patch_tokens_target_b.shape[0],
+                device=patch_tokens_target_b.device,
             )
         else:
-            valid_patch_tokens = patch_tokens_b[obj_mask_patch_b]
+            valid_select = patch_tokens_select_b[obj_mask_patch_b]
+            valid_target = patch_tokens_target_b[obj_mask_patch_b]
             local_scores = abs_logits_b[valid_part_idx][:, obj_mask_patch_b]
             gt_masks_local = part_gt_mask_patch_b[valid_part_idx][:, obj_mask_patch_b]
             valid_patch_idx_global = torch.nonzero(
@@ -377,35 +375,12 @@ class PartLoss(nn.Module):
                 as_tuple=False,
             ).squeeze(1)
 
-        return valid_patch_tokens, local_scores, gt_masks_local, valid_patch_idx_global
+        return valid_select, valid_target, local_scores, gt_masks_local, valid_patch_idx_global
 
-    def _run_hard_em(self, valid_patch_tokens, init_centers, anchor_idx_local, num_iters):
-        C = init_centers
-        Kb = int(C.shape[0])
-
-        for _ in range(max(int(num_iters), 1)):
-            assign_scores = valid_patch_tokens @ C.T
-            assign = assign_scores.argmax(dim=1)
-
-            # Keep each anchor patch assigned to its own center.
-            assign[anchor_idx_local] = torch.arange(Kb, device=assign.device)
-
-            proto_sum = valid_patch_tokens.new_zeros((Kb, valid_patch_tokens.shape[-1]))
-            proto_sum.index_add_(0, assign, valid_patch_tokens)
-
-            count = torch.bincount(
-                assign,
-                minlength=Kb,
-            ).to(valid_patch_tokens.dtype).clamp_min(1.0)
-
-            C = proto_sum / count[:, None]
-            C = self._safe_normalize(C, dim=-1)
-
-        return C
-
-    def _anchor_proto_em_pool(
+    def _anchor_proto_em_pool_dual(
         self,
-        patch_tokens,
+        patch_tokens_select,
+        patch_tokens_target,
         abs_logits,
         obj_mask_patch,
         part_valid_mask,
@@ -415,42 +390,37 @@ class PartLoss(nn.Module):
         return_anchor_indices: bool = False,
     ):
         B, K, _ = abs_logits.shape
-        D = patch_tokens.shape[-1]
+        D = patch_tokens_target.shape[-1]
 
-        z_proto = patch_tokens.new_zeros((B, K, D))
-        z_center = patch_tokens.new_zeros((B, K, D))
+        z_proto = patch_tokens_target.new_zeros((B, K, D))
+        z_center_select = patch_tokens_select.new_zeros((B, K, D))
 
-        total_valid_parts = patch_tokens.new_tensor(0.0)
-        total_anchor_hits = patch_tokens.new_tensor(0.0)
+        total_valid_parts = patch_tokens_target.new_tensor(0.0)
+        total_anchor_hits = patch_tokens_target.new_tensor(0.0)
 
-        anchor_tokens = patch_tokens.new_zeros((B, K, D))
+        anchor_tokens = patch_tokens_select.new_zeros((B, K, D))
         anchor_indices = torch.full(
             (B, K),
             -1,
             dtype=torch.long,
-            device=patch_tokens.device,
+            device=patch_tokens_target.device,
         )
-        anchor_valid = torch.zeros((B, K), dtype=torch.bool, device=patch_tokens.device)
+        anchor_valid = torch.zeros((B, K), dtype=torch.bool, device=patch_tokens_target.device)
 
         for b in range(B):
             valid_part_idx = torch.nonzero(part_valid_mask[b], as_tuple=False).squeeze(1)
-            if valid_part_idx.numel() == 0 or valid_part_idx.numel() > int(obj_mask_patch[b].sum().item()):
-                # The second condition is only a safety fallback:
-                # if there are fewer valid patches than parts, Hungarian cannot
-                # provide a unique anchor for every part. The selector itself
-                # still handles this, so we do not skip.
-                pass
-
             if valid_part_idx.numel() == 0 or obj_mask_patch[b].sum() == 0:
                 continue
 
             (
-                valid_patch_tokens,
+                valid_select,
+                valid_target,
                 local_scores,
                 gt_masks_local,
                 valid_patch_idx_global,
-            ) = self._slice_valid_pool(
-                patch_tokens_b=patch_tokens[b],
+            ) = self._slice_valid_pool_dual(
+                patch_tokens_select_b=patch_tokens_select[b],
+                patch_tokens_target_b=patch_tokens_target[b],
                 abs_logits_b=abs_logits[b],
                 obj_mask_patch_b=obj_mask_patch[b],
                 part_gt_mask_patch_b=part_gt_mask_patch[b],
@@ -474,18 +444,36 @@ class PartLoss(nn.Module):
 
             anchor_idx_global = valid_patch_idx_global[anchor_idx_local]
 
-            C0 = valid_patch_tokens[anchor_idx_local]
-            C = self._run_hard_em(
-                valid_patch_tokens=valid_patch_tokens,
-                init_centers=C0,
-                anchor_idx_local=anchor_idx_local,
-                num_iters=num_iters,
-            )
+            # Anchor and hard EM are computed in selection/CORAL space.
+            C = valid_select[anchor_idx_local]
+            assign = None
+            for _ in range(max(int(num_iters), 1)):
+                assign_scores = valid_select @ C.T
+                assign = assign_scores.argmax(dim=1)
+                assign[anchor_idx_local] = torch.arange(Kb, device=assign.device)
 
-            z_center[b, valid_part_idx] = C
-            z_proto[b, valid_part_idx] = C
+                proto_sum_select = valid_select.new_zeros((Kb, valid_select.shape[-1]))
+                proto_sum_select.index_add_(0, assign, valid_select)
 
-            anchor_tokens[b, valid_part_idx] = C0
+                count = torch.bincount(
+                    assign,
+                    minlength=Kb,
+                ).to(valid_select.dtype).clamp_min(1.0)
+
+                C = proto_sum_select / count[:, None]
+                C = self._safe_normalize(C, dim=-1)
+
+            # The final pseudo prototype target is computed in target/raw space.
+            proto_sum_target = valid_target.new_zeros((Kb, valid_target.shape[-1]))
+            proto_sum_target.index_add_(0, assign, valid_target)
+            count = torch.bincount(assign, minlength=Kb).to(valid_target.dtype).clamp_min(1.0)
+            z_local = proto_sum_target / count[:, None]
+            z_local = self._safe_normalize(z_local, dim=-1)
+
+            z_center_select[b, valid_part_idx] = C
+            z_proto[b, valid_part_idx] = z_local
+
+            anchor_tokens[b, valid_part_idx] = valid_select[anchor_idx_local]
             anchor_indices[b, valid_part_idx] = anchor_idx_global
             anchor_valid[b, valid_part_idx] = True
 
@@ -499,17 +487,41 @@ class PartLoss(nn.Module):
         if return_anchor_tokens and return_anchor_indices:
             return (
                 z_proto,
-                z_center,
+                z_center_select,
                 anchor_metrics,
                 anchor_tokens,
                 anchor_indices,
                 anchor_valid,
             )
         if return_anchor_tokens:
-            return z_proto, z_center, anchor_metrics, anchor_tokens, anchor_valid
+            return z_proto, z_center_select, anchor_metrics, anchor_tokens, anchor_valid
         if return_anchor_indices:
-            return z_proto, z_center, anchor_metrics, anchor_indices, anchor_valid
-        return z_proto, z_center, anchor_metrics
+            return z_proto, z_center_select, anchor_metrics, anchor_indices, anchor_valid
+        return z_proto, z_center_select, anchor_metrics
+
+    # Backward-compatible wrapper: old single-token behavior.
+    def _anchor_proto_em_pool(
+        self,
+        patch_tokens,
+        abs_logits,
+        obj_mask_patch,
+        part_valid_mask,
+        part_gt_mask_patch,
+        num_iters=3,
+        return_anchor_tokens: bool = False,
+        return_anchor_indices: bool = False,
+    ):
+        return self._anchor_proto_em_pool_dual(
+            patch_tokens_select=patch_tokens,
+            patch_tokens_target=patch_tokens,
+            abs_logits=abs_logits,
+            obj_mask_patch=obj_mask_patch,
+            part_valid_mask=part_valid_mask,
+            part_gt_mask_patch=part_gt_mask_patch,
+            num_iters=num_iters,
+            return_anchor_tokens=return_anchor_tokens,
+            return_anchor_indices=return_anchor_indices,
+        )
 
     def _instance_consistency_loss(self, part_proj, z_proto, part_valid_mask):
         cos = F.cosine_similarity(part_proj, z_proto.detach(), dim=-1)
@@ -597,11 +609,9 @@ class PartLoss(nn.Module):
 
         logits = abs_logits.masked_fill(~obj_mask_patch[:, None, :], -1e4)
 
-        # Per-part soft patch distribution inside object mask.
         attn = F.softmax(logits, dim=-1)
         attn = attn * part_valid_mask[:, :, None].float()
 
-        # Pairwise overlap between part attention maps.
         overlap = torch.einsum("bkn,bln->bkl", attn, attn)
 
         B, K, _ = overlap.shape

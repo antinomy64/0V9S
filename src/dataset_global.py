@@ -1,4 +1,4 @@
-# src/dataset_global_pool.py
+# src/dataset_global.py
 
 from typing import Dict, List, Optional
 import torch
@@ -9,8 +9,18 @@ class CategoryPatchPoolDataset(Dataset):
     """
     Build one global patch-token pool per object category.
 
+    This version supports dual V-side tokens:
+      - patch_tokens_select: used by loss_global.py for anchor / EM / assignment.
+      - patch_tokens_target: used by loss_global.py for the final pseudo-prototype target.
+
+    Backward compatibility:
+      - If select_joint_dataset is None, select == target.
+      - The old key "patch_tokens" is kept as an alias of patch_tokens_target.
+
     Each item is one object category:
-        patch_tokens:        [M, D]
+        patch_tokens_select: [M, D]
+        patch_tokens_target: [M, D]
+        patch_tokens:        [M, D] alias of target
         obj_mask_patch:      [M] all True
         part_gt_mask_patch:  [K, M]
         part_text_feat:      [K, Dt]
@@ -21,6 +31,7 @@ class CategoryPatchPoolDataset(Dataset):
     def __init__(
         self,
         joint_dataset,
+        select_joint_dataset=None,
         sample_patches_per_step: Optional[int] = 65536,
         steps_per_epoch: Optional[int] = None,
         store_dtype: torch.dtype = torch.float16,
@@ -38,8 +49,6 @@ class CategoryPatchPoolDataset(Dataset):
         self.seed = int(seed)
         self.fixed_subsample = bool(fixed_subsample)
 
-        # Use an independent torch.Generator so pool sampling is reproducible
-        # and does not consume the global RNG used by model training.
         self.generator = torch.Generator()
         self.generator.manual_seed(self.seed)
 
@@ -47,54 +56,104 @@ class CategoryPatchPoolDataset(Dataset):
         self.categories: List[int] = []
         self.fixed_indices: Dict[int, torch.Tensor] = {}
 
-        self._build_pools(joint_dataset)
+        self._build_pools(joint_dataset, select_joint_dataset=select_joint_dataset)
         self._build_fixed_indices()
 
-    def _build_pools(self, joint_dataset):
+    @staticmethod
+    def _dataset_samples(joint_dataset):
+        return (
+            list(joint_dataset.data.values())
+            if isinstance(joint_dataset.data, dict)
+            else list(joint_dataset.data)
+        )
+
+    @staticmethod
+    def _same_part_order(sample_a: Dict, sample_b: Dict) -> bool:
+        ids_a = sample_a["part_category_id"].long()
+        ids_b = sample_b["part_category_id"].long()
+        return torch.equal(ids_a, ids_b)
+
+    def _build_pools(self, joint_dataset, select_joint_dataset=None):
         tmp = {}
 
-        # joint_dataset.data 是你 DinoClipJointDataset 构造好的 sample dict
-        samples = joint_dataset.data.values() if isinstance(joint_dataset.data, dict) else joint_dataset.data
+        target_samples = self._dataset_samples(joint_dataset)
+        if select_joint_dataset is None:
+            select_samples = target_samples
+            using_dual = False
+        else:
+            select_samples = self._dataset_samples(select_joint_dataset)
+            using_dual = True
+            if len(select_samples) != len(target_samples):
+                raise ValueError(
+                    "target/select datasets must contain the same number of samples: "
+                    f"target={len(target_samples)}, select={len(select_samples)}"
+                )
 
-        for sample in samples:
-            cat = int(sample["category_id"])
+        for sample_idx, (target_sample, select_sample) in enumerate(zip(target_samples, select_samples)):
+            cat = int(target_sample["category_id"])
+            select_cat = int(select_sample["category_id"])
+            if select_cat != cat:
+                raise ValueError(
+                    f"target/select category mismatch at sample {sample_idx}: "
+                    f"target={cat}, select={select_cat}"
+                )
+            if not self._same_part_order(target_sample, select_sample):
+                raise ValueError(
+                    f"target/select part_category_id order mismatch at sample {sample_idx}, "
+                    f"category={cat}"
+                )
 
-            patch_tokens = sample["patch_tokens"].float()          # [N, D]
-            obj_mask = sample["obj_mask_patch"].bool()             # [N]
-            part_gt = sample["part_gt_mask_patch"].bool()          # [K, N]
+            patch_tokens_target = target_sample["patch_tokens"].float()  # [N, D]
+            patch_tokens_select = select_sample["patch_tokens"].float()  # [N, D]
+            obj_mask = target_sample["obj_mask_patch"].bool()            # [N]
+            part_gt = target_sample["part_gt_mask_patch"].bool()         # [K, N]
 
-            if patch_tokens.ndim != 2:
-                raise ValueError(f"Expected patch_tokens [N, D], got {tuple(patch_tokens.shape)}")
-            if obj_mask.ndim != 1 or obj_mask.shape[0] != patch_tokens.shape[0]:
+            if patch_tokens_target.ndim != 2:
+                raise ValueError(
+                    f"Expected target patch_tokens [N, D], got {tuple(patch_tokens_target.shape)}"
+                )
+            if patch_tokens_select.ndim != 2:
+                raise ValueError(
+                    f"Expected select patch_tokens [N, D], got {tuple(patch_tokens_select.shape)}"
+                )
+            if patch_tokens_select.shape != patch_tokens_target.shape:
+                raise ValueError(
+                    f"select/target patch token shape mismatch at sample {sample_idx}: "
+                    f"select={tuple(patch_tokens_select.shape)}, "
+                    f"target={tuple(patch_tokens_target.shape)}"
+                )
+            if obj_mask.ndim != 1 or obj_mask.shape[0] != patch_tokens_target.shape[0]:
                 raise ValueError(
                     f"obj_mask_patch shape {tuple(obj_mask.shape)} does not match "
-                    f"patch_tokens shape {tuple(patch_tokens.shape)}"
+                    f"patch_tokens shape {tuple(patch_tokens_target.shape)}"
                 )
-            if part_gt.ndim != 2 or part_gt.shape[1] != patch_tokens.shape[0]:
+            if part_gt.ndim != 2 or part_gt.shape[1] != patch_tokens_target.shape[0]:
                 raise ValueError(
                     f"part_gt_mask_patch shape {tuple(part_gt.shape)} does not match "
-                    f"patch_tokens shape {tuple(patch_tokens.shape)}"
+                    f"patch_tokens shape {tuple(patch_tokens_target.shape)}"
                 )
 
             if obj_mask.sum().item() == 0:
                 continue
 
-            # 只保留 object 内 patch，避免背景进入全局池
-            patch_obj = patch_tokens[obj_mask].to(self.store_dtype)        # [Mi, D]
-            part_gt_obj = part_gt[:, obj_mask].contiguous()                # [K, Mi]
+            # Keep only object-mask patches in the global pool.
+            patch_obj_select = patch_tokens_select[obj_mask].to(self.store_dtype)  # [Mi, D]
+            patch_obj_target = patch_tokens_target[obj_mask].to(self.store_dtype)  # [Mi, D]
+            part_gt_obj = part_gt[:, obj_mask].contiguous()                        # [K, Mi]
 
             if cat not in tmp:
                 tmp[cat] = {
-                    "patch_chunks": [],
+                    "patch_select_chunks": [],
+                    "patch_target_chunks": [],
                     "part_gt_chunks": [],
                     "obj_text_feats": [],
-                    "part_text_feat": sample["part_text_feat"].float().clone(),
-                    "part_category_id": sample["part_category_id"].long().clone(),
-                    "part_class_name": sample.get("part_class_name", []),
+                    "part_text_feat": target_sample["part_text_feat"].float().clone(),
+                    "part_category_id": target_sample["part_category_id"].long().clone(),
+                    "part_class_name": target_sample.get("part_class_name", []),
                 }
             else:
                 ref_ids = tmp[cat]["part_category_id"]
-                cur_ids = sample["part_category_id"].long()
+                cur_ids = target_sample["part_category_id"].long()
                 if not torch.equal(ref_ids, cur_ids):
                     raise ValueError(
                         f"Inconsistent part_category_id order for category {cat}: "
@@ -106,14 +165,16 @@ class CategoryPatchPoolDataset(Dataset):
                         f"part bank size ({ref_ids.numel()}) for category {cat}"
                     )
 
-            tmp[cat]["patch_chunks"].append(patch_obj.cpu())
+            tmp[cat]["patch_select_chunks"].append(patch_obj_select.cpu())
+            tmp[cat]["patch_target_chunks"].append(patch_obj_target.cpu())
             tmp[cat]["part_gt_chunks"].append(part_gt_obj.cpu())
-            tmp[cat]["obj_text_feats"].append(sample["obj_text_feat"].float().cpu())
+            tmp[cat]["obj_text_feats"].append(target_sample["obj_text_feat"].float().cpu())
 
         self.pools = {}
         for cat, item in tmp.items():
-            patch_pool = torch.cat(item["patch_chunks"], dim=0)          # [M, D]
-            part_gt_pool = torch.cat(item["part_gt_chunks"], dim=1)      # [K, M]
+            patch_select_pool = torch.cat(item["patch_select_chunks"], dim=0)  # [M, D]
+            patch_target_pool = torch.cat(item["patch_target_chunks"], dim=0)  # [M, D]
+            part_gt_pool = torch.cat(item["part_gt_chunks"], dim=1)            # [K, M]
             obj_text_feat = torch.stack(item["obj_text_feats"], dim=0).mean(dim=0)
 
             K = item["part_text_feat"].shape[0]
@@ -122,17 +183,20 @@ class CategoryPatchPoolDataset(Dataset):
 
             self.pools[cat] = {
                 "category_id": torch.tensor(cat, dtype=torch.long),
-                "patch_tokens": patch_pool,
+                "patch_tokens_select": patch_select_pool,
+                "patch_tokens_target": patch_target_pool,
+                "patch_tokens": patch_target_pool,  # backward-compatible alias: target/raw tokens
                 "obj_text_feat": obj_text_feat,
                 "part_text_feat": item["part_text_feat"],
-                "obj_mask_patch": torch.ones(patch_pool.shape[0], dtype=torch.bool),
+                "obj_mask_patch": torch.ones(patch_target_pool.shape[0], dtype=torch.bool),
                 "part_gt_mask_patch": part_gt_pool,
                 "part_valid_mask": torch.ones(K, dtype=torch.bool),
                 "part_category_id": item["part_category_id"],
                 "metadata": {
                     "category_id": cat,
-                    "num_patches": int(patch_pool.shape[0]),
+                    "num_patches": int(patch_target_pool.shape[0]),
                     "num_parts": int(K),
+                    "dual_select_target": bool(using_dual),
                 },
             }
 
@@ -140,12 +204,13 @@ class CategoryPatchPoolDataset(Dataset):
         if len(self.categories) == 0:
             raise RuntimeError("No non-empty category patch pools were built.")
 
-        print(f"[global pool] built {len(self.categories)} category pools")
+        mode = "dual select/target" if using_dual else "single target-as-select"
+        print(f"[global pool] built {len(self.categories)} category pools ({mode})")
         for cat in self.categories:
             p = self.pools[cat]
             print(
                 f"[global pool] cat={cat}, "
-                f"patches={p['patch_tokens'].shape[0]}, "
+                f"patches={p['patch_tokens_target'].shape[0]}, "
                 f"parts={p['part_text_feat'].shape[0]}"
             )
 
@@ -155,7 +220,7 @@ class CategoryPatchPoolDataset(Dataset):
             return
 
         for cat in self.categories:
-            M = int(self.pools[cat]["patch_tokens"].shape[0])
+            M = int(self.pools[cat]["patch_tokens_target"].shape[0])
             if M > int(self.sample_patches_per_step):
                 self.fixed_indices[cat] = torch.randperm(
                     M,
@@ -168,29 +233,31 @@ class CategoryPatchPoolDataset(Dataset):
         return len(self.categories)
 
     def __getitem__(self, idx: int):
-        # 如果 steps_per_epoch > 类别数，就循环类别
         cat = self.categories[idx % len(self.categories)]
         item = self.pools[cat]
 
-        patch_tokens = item["patch_tokens"]
+        patch_tokens_select = item["patch_tokens_select"]
+        patch_tokens_target = item["patch_tokens_target"]
         part_gt_mask_patch = item["part_gt_mask_patch"]
-        M = patch_tokens.shape[0]
+        M = patch_tokens_target.shape[0]
 
-        # 每次 step 从类别全局池里采样一部分 patch，避免显存爆炸
         if self.sample_patches_per_step is not None and M > self.sample_patches_per_step:
             if self.fixed_subsample:
                 perm = self.fixed_indices[cat]
             else:
                 perm = torch.randperm(M, generator=self.generator)[: self.sample_patches_per_step]
-            patch_tokens = patch_tokens[perm]
+            patch_tokens_select = patch_tokens_select[perm]
+            patch_tokens_target = patch_tokens_target[perm]
             part_gt_mask_patch = part_gt_mask_patch[:, perm]
 
         return {
             "category_id": item["category_id"],
-            "patch_tokens": patch_tokens,
+            "patch_tokens_select": patch_tokens_select,
+            "patch_tokens_target": patch_tokens_target,
+            "patch_tokens": patch_tokens_target,  # backward-compatible alias
             "obj_text_feat": item["obj_text_feat"],
             "part_text_feat": item["part_text_feat"],
-            "obj_mask_patch": torch.ones(patch_tokens.shape[0], dtype=torch.bool),
+            "obj_mask_patch": torch.ones(patch_tokens_target.shape[0], dtype=torch.bool),
             "part_gt_mask_patch": part_gt_mask_patch,
             "part_valid_mask": item["part_valid_mask"],
             "part_category_id": item["part_category_id"],
@@ -207,13 +274,15 @@ def global_pool_collate_fn(batch: List[Dict]) -> Dict:
 
     b = batch[0]
     return {
-        "patch_tokens": b["patch_tokens"].float().unsqueeze(0),             # [1, M, D]
-        "obj_text_feat": b["obj_text_feat"].float().unsqueeze(0),           # [1, Dt]
-        "part_text_feat": b["part_text_feat"].float().unsqueeze(0),         # [1, K, Dt]
-        "obj_mask_patch": b["obj_mask_patch"].bool().unsqueeze(0),          # [1, M]
-        "part_gt_mask_patch": b["part_gt_mask_patch"].bool().unsqueeze(0),  # [1, K, M]
-        "part_valid_mask": b["part_valid_mask"].bool().unsqueeze(0),        # [1, K]
+        "patch_tokens_select": b["patch_tokens_select"].float().unsqueeze(0),        # [1, M, D]
+        "patch_tokens_target": b["patch_tokens_target"].float().unsqueeze(0),        # [1, M, D]
+        "patch_tokens": b["patch_tokens"].float().unsqueeze(0),                      # [1, M, D], alias target
+        "obj_text_feat": b["obj_text_feat"].float().unsqueeze(0),                    # [1, Dt]
+        "part_text_feat": b["part_text_feat"].float().unsqueeze(0),                  # [1, K, Dt]
+        "obj_mask_patch": b["obj_mask_patch"].bool().unsqueeze(0),                   # [1, M]
+        "part_gt_mask_patch": b["part_gt_mask_patch"].bool().unsqueeze(0),           # [1, K, M]
+        "part_valid_mask": b["part_valid_mask"].bool().unsqueeze(0),                 # [1, K]
         "category_id": b["category_id"].view(1),
-        "part_category_id": b["part_category_id"].long().unsqueeze(0),      # [1, K]
+        "part_category_id": b["part_category_id"].long().unsqueeze(0),               # [1, K]
         "metadata": [b["metadata"]],
     }
