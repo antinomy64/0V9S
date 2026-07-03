@@ -1,0 +1,38 @@
+[VERSION] v4_full_image_pixel_miou_20260701
+definition: Full-image pixel mIoU using precomputed text features; logits are upsampled to GT mask size; no template; no CLIP text encoder.
+eval_mode: pixel
+upsample_mode: bilinear
+align_corners: False
+val_pth: feature/voc116_obj_part_test15/val_voc116_obj_with_llama_objpart.pth
+model_config: configs/vitb_mlp_infonce_llama4096.yaml
+weights: weights/vitb_mlp_infonce_llama4096_voc116_obj_test15_llama_objmean_partobjonly.pth
+text_key: llama_ann_feats
+dino_model: dinov2_vitb14_reg
+image_size: 448
+patch_size: 14
+num_classes: 16
+used_images: 850
+total_eval_pixels: 34946604
+
+mIoU:  93.3527
+mAcc:  98.0639
+aAcc:  96.6270
+
+class                   IoU        Acc      ann      pixel         tp       pred
+--------------------------------------------------------------------------------------
+aeroplane           99.5641    99.7525       56    1220092    1217072    1219381
+bicycle             80.9365    99.6350       54     539700     537730     662415
+bird                99.3118    99.9478       72    1353385    1352678    1361345
+bottle              75.1182    97.1085       61    1308356    1270525    1653537
+bus                 97.2943    97.7631       44    2818775    2755722    2769305
+car                 94.2708    97.5746       80    2691635    2626353    2720684
+cat                 98.7856    99.0187       85    3947352    3908617    3917933
+cow                 98.5668    98.9422       45    2001573    1980400    1988023
+dog                 98.0064    99.6838       81    3226396    3216193    3271412
+horse               98.2279    99.6599       49    1909323    1902830    1930665
+motorbike           89.9858    99.0407       52    1676167    1660087    1828752
+person              86.5157    87.7314      245    6710219    5886972    5981268
+pottedplant         90.1458    99.3553       48     883955     878256     968563
+sheep               98.7067    99.9155       35    1251971    1250913    1266245
+train               98.8867    99.2413       51    2136300    2120091    2127750
+tvmonitor           89.3197    94.6525       42    1271405    1203417    1279326

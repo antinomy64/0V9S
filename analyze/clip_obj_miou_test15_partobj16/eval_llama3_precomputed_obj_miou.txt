@@ -1,0 +1,35 @@
+[VERSION] v1_precomputed_llama_obj_miou_20260701
+definition: PTH-level object-foreground patch mIoU; not full-image mmseg official mIoU.
+val_pth: feature/voc116_obj_part_test15/val_voc116_obj_with_llama_objpart.pth
+model_config: configs/vitb_mlp_infonce.yaml
+weights: weights/vitb_mlp_infonce_voc116_obj_test15.pth
+text_key: ann_feats
+num_classes: 16
+used_annotations: 1100
+skipped_missing_mask_file: 0
+skipped_zero_obj_patch: 0
+total_obj_patches: 310612
+patch_grid: 32
+
+mIoU:  90.2750
+mAcc:  96.4944
+aAcc:  94.6045
+
+class                   IoU        Acc      ann      patch         tp       pred
+--------------------------------------------------------------------------------------
+aeroplane           98.9653    99.3522       56       8953       8895       8930
+bicycle             72.4516    96.7812       54       5530       5352       7209
+bird                98.3273    99.8166       72      14723      14696      14919
+bottle              76.8275    95.6843       61      13115      12549      15768
+bus                 93.2285    94.7696       44      19903      18862      19191
+car                 91.2490    95.5860       80      26552      25380      26642
+cat                 98.0972    98.6934       85      30768      30366      30553
+cow                 96.5517    97.5059       45      14875      14504      14651
+dog                 96.8415    99.0984       81      28062      27809      28463
+horse               94.2841    98.9249       49      14790      14631      15359
+motorbike           80.1270    98.2374       52      14127      13878      17071
+person              81.7704    84.0557      245      63797      53625      55408
+pottedplant         85.3427    93.7684       48      10848      10172      11243
+sheep               96.6783    99.3729       35      10046       9983      10263
+train               98.3304    98.7932       51      16573      16373      16451
+tvmonitor           85.3278    93.4708       42      17950      16778      18491

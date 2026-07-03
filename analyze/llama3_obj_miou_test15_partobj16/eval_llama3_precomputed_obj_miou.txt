@@ -1,0 +1,35 @@
+[VERSION] v1_precomputed_llama_obj_miou_20260701
+definition: PTH-level object-foreground patch mIoU; not full-image mmseg official mIoU.
+val_pth: feature/voc116_obj_part_test15/val_voc116_obj_with_llama_objpart.pth
+model_config: configs/vitb_mlp_infonce_llama4096.yaml
+weights: weights/vitb_mlp_infonce_llama4096_voc116_obj_test15_llama_objmean_partobjonly.pth
+text_key: llama_ann_feats
+num_classes: 16
+used_annotations: 1100
+skipped_missing_mask_file: 0
+skipped_zero_obj_patch: 0
+total_obj_patches: 310612
+patch_grid: 32
+
+mIoU:  90.5350
+mAcc:  96.6309
+aAcc:  94.7385
+
+class                   IoU        Acc      ann      patch         tp       pred
+--------------------------------------------------------------------------------------
+aeroplane           98.9551    99.4304       56       8953       8902       8945
+bicycle             73.6366    97.1790       54       5530       5374       7142
+bird                98.1700    99.8370       72      14723      14699      14949
+bottle              75.2774    95.6996       61      13115      12551      16109
+bus                 93.8353    95.6740       44      19903      19042      19432
+car                 91.5315    95.6613       80      26552      25400      26598
+cat                 98.1330    98.7390       85      30768      30380      30570
+cow                 96.7270    97.7479       45      14875      14540      14697
+dog                 96.8795    99.1269       81      28062      27817      28468
+horse               95.1619    98.9452       49      14790      14634      15222
+motorbike           80.6566    98.2587       52      14127      13881      16964
+person              82.0959    84.2140      245      63797      53726      55372
+pottedplant         85.9359    93.9528       48      10848      10192      11204
+sheep               96.8468    99.3629       35      10046       9982      10243
+train               98.4098    98.9561       51      16573      16400      16492
+tvmonitor           86.3084    93.3092       42      17950      16749      18205

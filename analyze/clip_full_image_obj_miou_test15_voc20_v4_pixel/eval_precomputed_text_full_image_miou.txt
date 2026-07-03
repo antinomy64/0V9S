@@ -1,0 +1,42 @@
+[VERSION] v4_full_image_pixel_miou_20260701
+definition: Full-image pixel mIoU using precomputed text features; logits are upsampled to GT mask size; no template; no CLIP text encoder.
+eval_mode: pixel
+upsample_mode: bilinear
+align_corners: False
+val_pth: feature/voc116_obj_part_test15/val_voc116_obj_with_text.pth
+model_config: configs/vitb_mlp_infonce.yaml
+weights: weights/vitb_mlp_infonce_voc116_obj_test15.pth
+text_key: ann_feats
+dino_model: dinov2_vitb14_reg
+image_size: 448
+patch_size: 14
+num_classes: 20
+used_images: 850
+total_eval_pixels: 37667550
+
+mIoU:  85.1049
+mAcc:  94.0309
+aAcc:  93.0197
+
+class                   IoU        Acc      ann      pixel         tp       pred
+--------------------------------------------------------------------------------------
+aeroplane           99.5194    99.6855       56    1220092    1216255    1218292
+bicycle             80.0223    99.5701       54     539700     537380     669218
+bird                99.3891    99.9430       72    1353385    1352613    1360155
+boat                78.0114    98.0169       11     147140     144222     181955
+bottle              73.0305    96.8727       61    1308356    1267440    1694579
+bus                 96.7387    97.2251       44    2818775    2740556    2754727
+car                 93.7840    97.1135       80    2691635    2613941    2709500
+cat                 97.9442    98.6220       85    3947352    3892956    3920271
+chair               49.2912    69.3162       41     638828     442811     702340
+cow                 98.5100    98.8608       45    2001573    1978772    1985900
+diningtable         53.0109    67.2094       32    1031426     693215     969472
+dog                 96.6956    98.1062       81    3226396    3165293    3212357
+horse               97.8047    99.6790       49    1909323    1903194    1939783
+motorbike           89.7768    99.0737       52    1676167    1660640    1834216
+person              74.9833    76.7812      245    6710219    5152185    5313080
+pottedplant         85.5319    98.4165       48     883955     869958    1003118
+sheep               98.5958    99.8932       35    1251971    1250634    1267108
+sofa                53.4138    92.4802       25     903552     835607    1496458
+train               98.8096    99.1089       51    2136300    2117263    2123734
+tvmonitor           87.2357    94.6443       42    1271405    1203312    1311287

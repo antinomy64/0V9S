@@ -107,11 +107,16 @@ if __name__ == '__main__':
     parser.add_argument('--save_head_activations', type=str, default=None, help="If setted the occurences of the head activation of the last epoch will be saved at that path")
     parser.add_argument('--warmup', type=int, default=0, help="Number of warmup epochs")
     parser.add_argument('--init_weights', type=str, default='', help='Path to an existing projector checkpoint used to initialize finetuning')
+    parser.add_argument('--llama', action='store_true', help='Use llama_ann_feats as object text feature.')
     args = parser.parse_args()
     
     if args.use_wandb:
         import wandb
         wandb.init(project='dino-clip')
+        
+    if args.llama:
+        args.text_features = 'llama_ann_feats'
+        print("[llama] using text_features = llama_ann_feats")
     
     # if the model config name contains 'dino', it means that we do not work with pre-extracted features
     if not ('dino' in args.model_config):

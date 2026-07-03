@@ -1,0 +1,39 @@
+[VERSION] v3_full_image_precomputed_text_20260701
+definition: Full-image resized patch mIoU using precomputed text features; no template; no CLIP text encoder.
+val_pth: feature/voc116_obj_part_test15/val_voc116_obj_with_text.pth
+model_config: configs/vitb_mlp_infonce.yaml
+weights: weights/vitb_mlp_infonce_voc116_obj_test15.pth
+text_key: ann_feats
+dino_model: dinov2_vitb14_reg
+image_size: 448
+patch_size: 14
+num_classes: 20
+used_images: 850
+total_eval_patches: 216963
+
+mIoU:  83.2842
+mAcc:  92.8499
+aAcc:  92.1180
+
+class                   IoU        Acc      ann      patch         tp       pred
+--------------------------------------------------------------------------------------
+aeroplane           99.3283    99.4753       56       7433       7394       7405
+bicycle             79.1578    99.1984       54       2994       2970       3728
+bird                98.8845    99.7353       72       7555       7535       7600
+boat                73.0306    95.5151       11        825        788       1042
+bottle              71.3415    96.0542       61       7679       7376      10036
+bus                 94.9502    95.3348       44      16291      15531      15597
+car                 91.5537    96.5297       80      15676      15132      15984
+cat                 97.2682    98.4071       85      22035      21684      21942
+chair               45.5570    65.5937       41       3697       2425       4051
+cow                 97.5616    98.2985       45      11519      11323      11410
+diningtable         50.3357    64.1299       32       5729       3674       5244
+dog                 96.1591    97.7783       81      18589      18176      18489
+horse               97.3870    99.0746       49      11022      10920      11111
+motorbike           88.6842    98.4585       52       9536       9389      10440
+person              73.4715    75.9179      245      39191      29753      31058
+pottedplant         82.7377    97.1707       48       5337       5186       6117
+sheep               97.4148    99.3161       35       7019       6971       7108
+sofa                49.7496    89.3779       25       5112       4569       8641
+train               98.2749    98.6428       51      12821      12647      12695
+tvmonitor           82.8365    92.9886       42       6903       6419       7265

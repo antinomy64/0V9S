@@ -1,0 +1,125 @@
+{
+  "args": {
+    "model_config": "configs/vitb_mlp_infonce_llama4096.yaml",
+    "train_dataset": "feature/voc116_obj_part_test15/train_voc116_obj_with_llama_objpart.pth",
+    "val_dataset": "feature/voc116_obj_part_test15/val_voc116_obj_with_llama_objpart.pth",
+    "weights": "weights/vitb_mlp_infonce_llama4096_voc116_obj_test15_llama_objmean_partobjonly.pth",
+    "obj_feature_name": "avg_self_attn_out",
+    "part_feature_name": "cropaug_patch_tokens",
+    "obj_text_name": "llama_ann_feats",
+    "part_text_name": "llama_part_ann_feats",
+    "resize_dim": 448,
+    "crop_dim": 448,
+    "patch_size": 14,
+    "path_prefix": null,
+    "epochs": 10,
+    "batch_size": 16,
+    "num_workers": 0,
+    "lr": 0.001,
+    "seed": 123,
+    "max_train_batches": 0,
+    "max_eval_batches": 0,
+    "out_dir": "weights/test15_llama4096_w_relative_anchor"
+  },
+  "identity_eval_relative": {
+    "total_visible_parts": 4421,
+    "before_anchor_hit_rate": 0.20176430671793713,
+    "after_anchor_hit_rate": 0.20176430671793713,
+    "delta_anchor_hit_rate": 0.0,
+    "before_mean_anchor_cost": 0.8290659943416469,
+    "after_mean_anchor_cost": 0.8290659891105674,
+    "delta_mean_anchor_cost": -5.23107943290015e-09,
+    "before_mean_cos_gt_proto": 0.19880071090560872,
+    "after_mean_cos_gt_proto": 0.19880071622432222,
+    "delta_mean_cos_gt_proto": 5.318713495564714e-09
+  },
+  "after_eval_relative": {
+    "total_visible_parts": 4421,
+    "before_anchor_hit_rate": 0.20176430671793713,
+    "after_anchor_hit_rate": 0.4365528161049536,
+    "delta_anchor_hit_rate": 0.2347885093870165,
+    "before_mean_anchor_cost": 0.8290659943416469,
+    "after_mean_anchor_cost": 0.5386976271267796,
+    "delta_mean_anchor_cost": -0.2903683672148673,
+    "before_mean_cos_gt_proto": 0.19880071090560872,
+    "after_mean_cos_gt_proto": 0.4737451302721419,
+    "delta_mean_cos_gt_proto": 0.2749444193665332
+  },
+  "fit_history": [
+    {
+      "epoch": 0,
+      "loss": 0.5727006026676723,
+      "used_samples": 8604.0,
+      "visible_parts": 47366.0,
+      "steps": 686
+    },
+    {
+      "epoch": 1,
+      "loss": 0.5483121537866815,
+      "used_samples": 8604.0,
+      "visible_parts": 47366.0,
+      "steps": 686
+    },
+    {
+      "epoch": 2,
+      "loss": 0.5428414377804748,
+      "used_samples": 8604.0,
+      "visible_parts": 47366.0,
+      "steps": 686
+    },
+    {
+      "epoch": 3,
+      "loss": 0.5411532231478927,
+      "used_samples": 8604.0,
+      "visible_parts": 47366.0,
+      "steps": 686
+    },
+    {
+      "epoch": 4,
+      "loss": 0.5398335094962802,
+      "used_samples": 8604.0,
+      "visible_parts": 47366.0,
+      "steps": 686
+    },
+    {
+      "epoch": 5,
+      "loss": 0.5380827636829966,
+      "used_samples": 8604.0,
+      "visible_parts": 47366.0,
+      "steps": 686
+    },
+    {
+      "epoch": 6,
+      "loss": 0.5386094721169931,
+      "used_samples": 8604.0,
+      "visible_parts": 47366.0,
+      "steps": 686
+    },
+    {
+      "epoch": 7,
+      "loss": 0.5379406179439917,
+      "used_samples": 8604.0,
+      "visible_parts": 47366.0,
+      "steps": 686
+    },
+    {
+      "epoch": 8,
+      "loss": 0.5367685687611471,
+      "used_samples": 8604.0,
+      "visible_parts": 47366.0,
+      "steps": 686
+    },
+    {
+      "epoch": 9,
+      "loss": 0.5363054595257728,
+      "used_samples": 8604.0,
+      "visible_parts": 47366.0,
+      "steps": 686
+    }
+  ],
+  "notes": {
+    "oracle_visible": "GT masks are used only to choose visible parts and audit anchor hits.",
+    "W_definition": "part_z = normalize(project_clip_txt(part_text) @ W)",
+    "objective": "relative greedy distinct anchor + selected cost only"
+  }
+}

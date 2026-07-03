@@ -1,0 +1,3806 @@
+{
+  "train": [
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 10.896602630615234,
+      "inst": 0.7653949856758118,
+      "overlap": 8.280485417344607e-06,
+      "spear": 0.2532760202884674,
+      "full_train_gt_proto_cos": 0.1544801890850067
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 6.320198059082031,
+      "inst": 0.7681785821914673,
+      "overlap": 8.260260074166581e-06,
+      "spear": 0.1387963593006134,
+      "full_train_gt_proto_cos": 0.15053647756576538
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 4.920851230621338,
+      "inst": 0.7706024646759033,
+      "overlap": 8.226438694691751e-06,
+      "spear": 0.10375210642814636,
+      "full_train_gt_proto_cos": 0.14983247220516205
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 4.06681489944458,
+      "inst": 0.7697258591651917,
+      "overlap": 8.202072422136553e-06,
+      "spear": 0.082423135638237,
+      "full_train_gt_proto_cos": 0.1512056142091751
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 1.3132954835891724,
+      "inst": 0.767609715461731,
+      "overlap": 8.174232789315283e-06,
+      "spear": 0.013638056814670563,
+      "full_train_gt_proto_cos": 0.15322303771972656
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 1.1356890201568604,
+      "inst": 0.7645161747932434,
+      "overlap": 8.156569492712151e-06,
+      "spear": 0.009275244548916817,
+      "full_train_gt_proto_cos": 0.1563587188720703
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 1.0408151149749756,
+      "inst": 0.7597785592079163,
+      "overlap": 8.141923899529502e-06,
+      "spear": 0.007021842524409294,
+      "full_train_gt_proto_cos": 0.1604725420475006
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.9728044271469116,
+      "inst": 0.7558697462081909,
+      "overlap": 8.13764472695766e-06,
+      "spear": 0.005419295281171799,
+      "full_train_gt_proto_cos": 0.16432936489582062
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.923555314540863,
+      "inst": 0.7506168484687805,
+      "overlap": 8.138764314935543e-06,
+      "spear": 0.004319390282034874,
+      "full_train_gt_proto_cos": 0.16900327801704407
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.8891004323959351,
+      "inst": 0.7453864812850952,
+      "overlap": 8.141029866237659e-06,
+      "spear": 0.0035887807607650757,
+      "full_train_gt_proto_cos": 0.1738104373216629
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.862804114818573,
+      "inst": 0.7384147047996521,
+      "overlap": 8.143217200995423e-06,
+      "spear": 0.0031056664884090424,
+      "full_train_gt_proto_cos": 0.1784101277589798
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.8430378437042236,
+      "inst": 0.7323702573776245,
+      "overlap": 8.151241672749165e-06,
+      "spear": 0.00276261568069458,
+      "full_train_gt_proto_cos": 0.1835290640592575
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.8217828273773193,
+      "inst": 0.7250405550003052,
+      "overlap": 8.158705895766616e-06,
+      "spear": 0.002414476126432419,
+      "full_train_gt_proto_cos": 0.18893574178218842
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.8079021573066711,
+      "inst": 0.7189362645149231,
+      "overlap": 8.169934517354704e-06,
+      "spear": 0.0022200606763362885,
+      "full_train_gt_proto_cos": 0.1946723610162735
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.7920712828636169,
+      "inst": 0.7115304470062256,
+      "overlap": 8.182786586985458e-06,
+      "spear": 0.0020094290375709534,
+      "full_train_gt_proto_cos": 0.20028752088546753
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.7794836163520813,
+      "inst": 0.7046630382537842,
+      "overlap": 8.194003385142423e-06,
+      "spear": 0.0018664170056581497,
+      "full_train_gt_proto_cos": 0.20591306686401367
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.7671348452568054,
+      "inst": 0.6974971890449524,
+      "overlap": 8.20670811663149e-06,
+      "spear": 0.0017368383705615997,
+      "full_train_gt_proto_cos": 0.21193945407867432
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.7535256147384644,
+      "inst": 0.6899934411048889,
+      "overlap": 8.220104973588604e-06,
+      "spear": 0.0015841946005821228,
+      "full_train_gt_proto_cos": 0.21845613420009613
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.7425112128257751,
+      "inst": 0.6821088194847107,
+      "overlap": 8.235735549533274e-06,
+      "spear": 0.001505943015217781,
+      "full_train_gt_proto_cos": 0.22452956438064575
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.7306845784187317,
+      "inst": 0.6743878722190857,
+      "overlap": 8.25574534246698e-06,
+      "spear": 0.0014032907783985138,
+      "full_train_gt_proto_cos": 0.230683371424675
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.7204493284225464,
+      "inst": 0.6666034460067749,
+      "overlap": 8.274322681245394e-06,
+      "spear": 0.001342007890343666,
+      "full_train_gt_proto_cos": 0.23721614480018616
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.7102802991867065,
+      "inst": 0.6591705083847046,
+      "overlap": 8.293098289868794e-06,
+      "spear": 0.0012735985219478607,
+      "full_train_gt_proto_cos": 0.24329951405525208
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.7011303305625916,
+      "inst": 0.6522585153579712,
+      "overlap": 8.315710147144273e-06,
+      "spear": 0.001217639073729515,
+      "full_train_gt_proto_cos": 0.24977229535579681
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.6914775967597961,
+      "inst": 0.6437557935714722,
+      "overlap": 8.332561264978722e-06,
+      "spear": 0.001188879832625389,
+      "full_train_gt_proto_cos": 0.25594452023506165
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6820622086524963,
+      "inst": 0.6360775232315063,
+      "overlap": 8.35639366414398e-06,
+      "spear": 0.0011454373598098755,
+      "full_train_gt_proto_cos": 0.26222240924835205
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6780939102172852,
+      "inst": 0.6293730735778809,
+      "overlap": 8.379821338166948e-06,
+      "spear": 0.001213831827044487,
+      "full_train_gt_proto_cos": 0.26845595240592957
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.6720371246337891,
+      "inst": 0.6224639415740967,
+      "overlap": 8.403777428611647e-06,
+      "spear": 0.0012351274490356445,
+      "full_train_gt_proto_cos": 0.2745538353919983
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6640401482582092,
+      "inst": 0.6151948571205139,
+      "overlap": 8.428437467955519e-06,
+      "spear": 0.0012169182300567627,
+      "full_train_gt_proto_cos": 0.28003230690956116
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.6626204252243042,
+      "inst": 0.60712730884552,
+      "overlap": 8.455555871478282e-06,
+      "spear": 0.001383097842335701,
+      "full_train_gt_proto_cos": 0.2856091856956482
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6740994453430176,
+      "inst": 0.6002287268638611,
+      "overlap": 8.483639248879626e-06,
+      "spear": 0.0018425248563289642,
+      "full_train_gt_proto_cos": 0.29113656282424927
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.7105172276496887,
+      "inst": 0.5951592326164246,
+      "overlap": 8.512816748407204e-06,
+      "spear": 0.002879694104194641,
+      "full_train_gt_proto_cos": 0.29654717445373535
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.8161923885345459,
+      "inst": 0.5893006324768066,
+      "overlap": 8.533786967745982e-06,
+      "spear": 0.005668027326464653,
+      "full_train_gt_proto_cos": 0.3008822500705719
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.7657176852226257,
+      "inst": 0.5815557241439819,
+      "overlap": 8.57904706208501e-06,
+      "spear": 0.004599759355187416,
+      "full_train_gt_proto_cos": 0.30552470684051514
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.704685628414154,
+      "inst": 0.5767176151275635,
+      "overlap": 8.600318324170075e-06,
+      "spear": 0.003194902092218399,
+      "full_train_gt_proto_cos": 0.3104013204574585
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6505087018013,
+      "inst": 0.570475697517395,
+      "overlap": 8.632071512693074e-06,
+      "spear": 0.001996506005525589,
+      "full_train_gt_proto_cos": 0.3148292005062103
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6208181381225586,
+      "inst": 0.5655270218849182,
+      "overlap": 8.652407814224716e-06,
+      "spear": 0.0013779513537883759,
+      "full_train_gt_proto_cos": 0.319405198097229
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.6162447929382324,
+      "inst": 0.560791015625,
+      "overlap": 8.673399861436337e-06,
+      "spear": 0.0013820063322782516,
+      "full_train_gt_proto_cos": 0.32384195923805237
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.6141120791435242,
+      "inst": 0.5558493733406067,
+      "overlap": 8.695586075191386e-06,
+      "spear": 0.0014522206038236618,
+      "full_train_gt_proto_cos": 0.3282321095466614
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.6179623603820801,
+      "inst": 0.5509079694747925,
+      "overlap": 8.712291673873551e-06,
+      "spear": 0.0016720052808523178,
+      "full_train_gt_proto_cos": 0.3321720063686371
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.6272186040878296,
+      "inst": 0.545525312423706,
+      "overlap": 8.73379576660227e-06,
+      "spear": 0.002037966623902321,
+      "full_train_gt_proto_cos": 0.33617785573005676
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6092725396156311,
+      "inst": 0.5406997799873352,
+      "overlap": 8.758970579947345e-06,
+      "spear": 0.0017099399119615555,
+      "full_train_gt_proto_cos": 0.3400034010410309
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.6016222238540649,
+      "inst": 0.5373232960700989,
+      "overlap": 8.769985470280517e-06,
+      "spear": 0.0016030874103307724,
+      "full_train_gt_proto_cos": 0.3436165153980255
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.5931264758110046,
+      "inst": 0.5329172611236572,
+      "overlap": 8.792941116553266e-06,
+      "spear": 0.0015008319169282913,
+      "full_train_gt_proto_cos": 0.3466273844242096
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.6071432828903198,
+      "inst": 0.5284996032714844,
+      "overlap": 8.81543292052811e-06,
+      "spear": 0.0019616857171058655,
+      "full_train_gt_proto_cos": 0.35028278827667236
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.6205942034721375,
+      "inst": 0.5237718224525452,
+      "overlap": 8.837146197038237e-06,
+      "spear": 0.0024161413311958313,
+      "full_train_gt_proto_cos": 0.3529382348060608
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.6068711876869202,
+      "inst": 0.5218204259872437,
+      "overlap": 8.868695658748038e-06,
+      "spear": 0.002121835947036743,
+      "full_train_gt_proto_cos": 0.35676854848861694
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.6419520378112793,
+      "inst": 0.5170488357543945,
+      "overlap": 8.892571713658981e-06,
+      "spear": 0.003118133172392845,
+      "full_train_gt_proto_cos": 0.3589201271533966
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6757404804229736,
+      "inst": 0.5151829719543457,
+      "overlap": 8.913867532100994e-06,
+      "spear": 0.004009481519460678,
+      "full_train_gt_proto_cos": 0.3614084720611572
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6273283362388611,
+      "inst": 0.5124296545982361,
+      "overlap": 8.926254849939141e-06,
+      "spear": 0.0028680041432380676,
+      "full_train_gt_proto_cos": 0.36359912157058716
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6739575862884521,
+      "inst": 0.5096508264541626,
+      "overlap": 8.946995876613073e-06,
+      "spear": 0.004103194922208786,
+      "full_train_gt_proto_cos": 0.36655306816101074
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6396836042404175,
+      "inst": 0.5045225620269775,
+      "overlap": 8.980003258329816e-06,
+      "spear": 0.0033745374530553818,
+      "full_train_gt_proto_cos": 0.36777618527412415
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6291688680648804,
+      "inst": 0.5042217969894409,
+      "overlap": 9.00529084901791e-06,
+      "spear": 0.0031191743910312653,
+      "full_train_gt_proto_cos": 0.3708895444869995
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6153725981712341,
+      "inst": 0.5009175539016724,
+      "overlap": 9.019369827001356e-06,
+      "spear": 0.0028568655252456665,
+      "full_train_gt_proto_cos": 0.3728751540184021
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5774354338645935,
+      "inst": 0.49952995777130127,
+      "overlap": 9.033963578986004e-06,
+      "spear": 0.0019431188702583313,
+      "full_train_gt_proto_cos": 0.3752012550830841
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5893046259880066,
+      "inst": 0.49525269865989685,
+      "overlap": 9.047053936228622e-06,
+      "spear": 0.0023467745631933212,
+      "full_train_gt_proto_cos": 0.3765139877796173
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6414068937301636,
+      "inst": 0.49325084686279297,
+      "overlap": 9.066349775821436e-06,
+      "spear": 0.003699367865920067,
+      "full_train_gt_proto_cos": 0.37905725836753845
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.7764899134635925,
+      "inst": 0.4900686740875244,
+      "overlap": 9.075234629563056e-06,
+      "spear": 0.007155993953347206,
+      "full_train_gt_proto_cos": 0.38024598360061646
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.6408902406692505,
+      "inst": 0.4886549711227417,
+      "overlap": 9.089039849641267e-06,
+      "spear": 0.0038013383746147156,
+      "full_train_gt_proto_cos": 0.382080614566803
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5701102018356323,
+      "inst": 0.48723194003105164,
+      "overlap": 9.111763574765064e-06,
+      "spear": 0.0020674001425504684,
+      "full_train_gt_proto_cos": 0.38345882296562195
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5271745920181274,
+      "inst": 0.48533380031585693,
+      "overlap": 9.131445949606132e-06,
+      "spear": 0.001041453331708908,
+      "full_train_gt_proto_cos": 0.3849044740200043
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5269013047218323,
+      "inst": 0.4827122688293457,
+      "overlap": 9.137612323684152e-06,
+      "spear": 0.0011001583188772202,
+      "full_train_gt_proto_cos": 0.3867088854312897
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5383430123329163,
+      "inst": 0.4801364541053772,
+      "overlap": 9.15539112611441e-06,
+      "spear": 0.0014505870640277863,
+      "full_train_gt_proto_cos": 0.3885103762149811
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.538482666015625,
+      "inst": 0.4785265028476715,
+      "overlap": 9.165145456790924e-06,
+      "spear": 0.0014943219721317291,
+      "full_train_gt_proto_cos": 0.38973110914230347
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.5208359956741333,
+      "inst": 0.4775577187538147,
+      "overlap": 9.183546353597194e-06,
+      "spear": 0.001077365130186081,
+      "full_train_gt_proto_cos": 0.39130347967147827
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.5101956129074097,
+      "inst": 0.47526878118515015,
+      "overlap": 9.19292688195128e-06,
+      "spear": 0.000868573784828186,
+      "full_train_gt_proto_cos": 0.39297276735305786
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.5191602110862732,
+      "inst": 0.4740709960460663,
+      "overlap": 9.200794920616318e-06,
+      "spear": 0.0011226292699575424,
+      "full_train_gt_proto_cos": 0.39456531405448914
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.5095610022544861,
+      "inst": 0.47272789478302,
+      "overlap": 9.212924851453863e-06,
+      "spear": 0.0009162202477455139,
+      "full_train_gt_proto_cos": 0.39582863450050354
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.5068470239639282,
+      "inst": 0.4707947373390198,
+      "overlap": 9.219897947332356e-06,
+      "spear": 0.000896696001291275,
+      "full_train_gt_proto_cos": 0.39782819151878357
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.511660635471344,
+      "inst": 0.4690392017364502,
+      "overlap": 9.224574569088873e-06,
+      "spear": 0.0010609235614538193,
+      "full_train_gt_proto_cos": 0.39935335516929626
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.5019286870956421,
+      "inst": 0.46684595942497253,
+      "overlap": 9.229997885995544e-06,
+      "spear": 0.0008724518120288849,
+      "full_train_gt_proto_cos": 0.400908887386322
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.5039157867431641,
+      "inst": 0.4654083251953125,
+      "overlap": 9.246007721230853e-06,
+      "spear": 0.0009580627083778381,
+      "full_train_gt_proto_cos": 0.4021441638469696
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.5102062225341797,
+      "inst": 0.4632236957550049,
+      "overlap": 9.248584319720976e-06,
+      "spear": 0.0011699385941028595,
+      "full_train_gt_proto_cos": 0.40338826179504395
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.500015914440155,
+      "inst": 0.4620830714702606,
+      "overlap": 9.255461009161081e-06,
+      "spear": 0.0009436924010515213,
+      "full_train_gt_proto_cos": 0.4051762521266937
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.5103307962417603,
+      "inst": 0.46015968918800354,
+      "overlap": 9.256425983039662e-06,
+      "spear": 0.0012496504932641983,
+      "full_train_gt_proto_cos": 0.40605026483535767
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5090977549552917,
+      "inst": 0.45950841903686523,
+      "overlap": 9.272310308006126e-06,
+      "spear": 0.0012350976467132568,
+      "full_train_gt_proto_cos": 0.40780332684516907
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5383697748184204,
+      "inst": 0.4582279324531555,
+      "overlap": 9.271992894355208e-06,
+      "spear": 0.001998908817768097,
+      "full_train_gt_proto_cos": 0.4087970554828644
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5233879685401917,
+      "inst": 0.4571131765842438,
+      "overlap": 9.281106940761674e-06,
+      "spear": 0.0016522295773029327,
+      "full_train_gt_proto_cos": 0.4101542532444
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5276302099227905,
+      "inst": 0.45605194568634033,
+      "overlap": 9.280478479922749e-06,
+      "spear": 0.0017848163843154907,
+      "full_train_gt_proto_cos": 0.41151973605155945
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5531814098358154,
+      "inst": 0.45457372069358826,
+      "overlap": 9.29289853957016e-06,
+      "spear": 0.0024605467915534973,
+      "full_train_gt_proto_cos": 0.41289153695106506
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5285400748252869,
+      "inst": 0.4519992470741272,
+      "overlap": 9.290074558521155e-06,
+      "spear": 0.0019088760018348694,
+      "full_train_gt_proto_cos": 0.4137195646762848
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5180922150611877,
+      "inst": 0.45132017135620117,
+      "overlap": 9.294629307987634e-06,
+      "spear": 0.0016646534204483032,
+      "full_train_gt_proto_cos": 0.4150664210319519
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5022938251495361,
+      "inst": 0.4504348635673523,
+      "overlap": 9.307504114985932e-06,
+      "spear": 0.001291818916797638,
+      "full_train_gt_proto_cos": 0.41649293899536133
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.520346999168396,
+      "inst": 0.4485805630683899,
+      "overlap": 9.313062037108466e-06,
+      "spear": 0.001789504662156105,
+      "full_train_gt_proto_cos": 0.4174703061580658
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.5230962038040161,
+      "inst": 0.4488503932952881,
+      "overlap": 9.316153409599792e-06,
+      "spear": 0.0018514860421419144,
+      "full_train_gt_proto_cos": 0.41838133335113525
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.5140697360038757,
+      "inst": 0.44728919863700867,
+      "overlap": 9.332630725111812e-06,
+      "spear": 0.0016648489981889725,
+      "full_train_gt_proto_cos": 0.4195075035095215
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5196679830551147,
+      "inst": 0.44652485847473145,
+      "overlap": 9.32979764911579e-06,
+      "spear": 0.0018239133059978485,
+      "full_train_gt_proto_cos": 0.42028486728668213
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5106287002563477,
+      "inst": 0.4451068043708801,
+      "overlap": 9.346883416583296e-06,
+      "spear": 0.0016333740204572678,
+      "full_train_gt_proto_cos": 0.42148569226264954
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5105120539665222,
+      "inst": 0.44329822063446045,
+      "overlap": 9.355679139844142e-06,
+      "spear": 0.0016756672412157059,
+      "full_train_gt_proto_cos": 0.42259445786476135
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5000593662261963,
+      "inst": 0.442989706993103,
+      "overlap": 9.369783583679236e-06,
+      "spear": 0.0014220569282770157,
+      "full_train_gt_proto_cos": 0.42352524399757385
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5106344819068909,
+      "inst": 0.4411740005016327,
+      "overlap": 9.369432518724352e-06,
+      "spear": 0.0017318278551101685,
+      "full_train_gt_proto_cos": 0.4245164394378662
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.4914252460002899,
+      "inst": 0.4397185742855072,
+      "overlap": 9.38354878599057e-06,
+      "spear": 0.0012879744172096252,
+      "full_train_gt_proto_cos": 0.425780326128006
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.486140638589859,
+      "inst": 0.4384762644767761,
+      "overlap": 9.390023478772491e-06,
+      "spear": 0.0011869147419929504,
+      "full_train_gt_proto_cos": 0.4266224503517151
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.4899982213973999,
+      "inst": 0.4366745948791504,
+      "overlap": 9.402254363521934e-06,
+      "spear": 0.0013283900916576385,
+      "full_train_gt_proto_cos": 0.427765816450119
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5184838175773621,
+      "inst": 0.4363049268722534,
+      "overlap": 9.40286281547742e-06,
+      "spear": 0.0020497702062129974,
+      "full_train_gt_proto_cos": 0.4278140068054199
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.6234696507453918,
+      "inst": 0.4358409345149994,
+      "overlap": 9.416691682417877e-06,
+      "spear": 0.004686011001467705,
+      "full_train_gt_proto_cos": 0.4290117621421814
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.6429513692855835,
+      "inst": 0.43291154503822327,
+      "overlap": 9.405509445059579e-06,
+      "spear": 0.005246290937066078,
+      "full_train_gt_proto_cos": 0.4285965859889984
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.6162193417549133,
+      "inst": 0.43376022577285767,
+      "overlap": 9.435952051717322e-06,
+      "spear": 0.00455675832927227,
+      "full_train_gt_proto_cos": 0.4300379753112793
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.7025745511054993,
+      "inst": 0.4320862591266632,
+      "overlap": 9.416045941179618e-06,
+      "spear": 0.006757499650120735,
+      "full_train_gt_proto_cos": 0.4302617609500885
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.5923376083374023,
+      "inst": 0.4323031008243561,
+      "overlap": 9.426530596101657e-06,
+      "spear": 0.003996150568127632,
+      "full_train_gt_proto_cos": 0.4303296208381653
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.537063479423523,
+      "inst": 0.42962485551834106,
+      "overlap": 9.45105330174556e-06,
+      "spear": 0.002681240439414978,
+      "full_train_gt_proto_cos": 0.4316014051437378
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.5029702186584473,
+      "inst": 0.42768216133117676,
+      "overlap": 9.443294402444735e-06,
+      "spear": 0.0018774792551994324,
+      "full_train_gt_proto_cos": 0.43247053027153015
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.4646506607532501,
+      "inst": 0.426797479391098,
+      "overlap": 9.452824087929912e-06,
+      "spear": 0.0009416025131940842,
+      "full_train_gt_proto_cos": 0.4336061179637909
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.46121272444725037,
+      "inst": 0.42585164308547974,
+      "overlap": 9.453003258386161e-06,
+      "spear": 0.0008793007582426071,
+      "full_train_gt_proto_cos": 0.4340156614780426
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.4585089087486267,
+      "inst": 0.4246893525123596,
+      "overlap": 9.463352398597635e-06,
+      "spear": 0.0008407570421695709,
+      "full_train_gt_proto_cos": 0.43483588099479675
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.45306217670440674,
+      "inst": 0.42350196838378906,
+      "overlap": 9.472138117416762e-06,
+      "spear": 0.0007342696189880371,
+      "full_train_gt_proto_cos": 0.43573862314224243
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.45000794529914856,
+      "inst": 0.4221775531768799,
+      "overlap": 9.481429515290074e-06,
+      "spear": 0.0006910189986228943,
+      "full_train_gt_proto_cos": 0.43635913729667664
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.4458944797515869,
+      "inst": 0.4209670424461365,
+      "overlap": 9.482721907261293e-06,
+      "spear": 0.0006184447556734085,
+      "full_train_gt_proto_cos": 0.4375472068786621
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.4441837966442108,
+      "inst": 0.41962218284606934,
+      "overlap": 9.491662240179721e-06,
+      "spear": 0.000609295442700386,
+      "full_train_gt_proto_cos": 0.43819907307624817
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.44016388058662415,
+      "inst": 0.41867387294769287,
+      "overlap": 9.498855433776043e-06,
+      "spear": 0.0005325004458427429,
+      "full_train_gt_proto_cos": 0.4390309453010559
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.4445578455924988,
+      "inst": 0.4173417389392853,
+      "overlap": 9.501850399828982e-06,
+      "spear": 0.0006756521761417389,
+      "full_train_gt_proto_cos": 0.43969008326530457
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.44153323769569397,
+      "inst": 0.4158874750137329,
+      "overlap": 9.511475582257845e-06,
+      "spear": 0.0006363876163959503,
+      "full_train_gt_proto_cos": 0.44061756134033203
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.4358062744140625,
+      "inst": 0.4147351086139679,
+      "overlap": 9.515622878097929e-06,
+      "spear": 0.0005220230668783188,
+      "full_train_gt_proto_cos": 0.4414486587047577
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.4351811408996582,
+      "inst": 0.41377168893814087,
+      "overlap": 9.527546353638172e-06,
+      "spear": 0.0005304720252752304,
+      "full_train_gt_proto_cos": 0.44204309582710266
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.43428361415863037,
+      "inst": 0.41249552369117737,
+      "overlap": 9.532153853797354e-06,
+      "spear": 0.0005399361252784729,
+      "full_train_gt_proto_cos": 0.44290637969970703
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.4345605969429016,
+      "inst": 0.41286706924438477,
+      "overlap": 9.538443919154815e-06,
+      "spear": 0.0005375687032938004,
+      "full_train_gt_proto_cos": 0.4437215030193329
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.43440961837768555,
+      "inst": 0.4103018641471863,
+      "overlap": 9.548847629048396e-06,
+      "spear": 0.0005979202687740326,
+      "full_train_gt_proto_cos": 0.4443691074848175
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.43065762519836426,
+      "inst": 0.4090385437011719,
+      "overlap": 9.556661098031327e-06,
+      "spear": 0.0005356986075639725,
+      "full_train_gt_proto_cos": 0.44532671570777893
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.4326545298099518,
+      "inst": 0.4089358150959015,
+      "overlap": 9.558931196806952e-06,
+      "spear": 0.0005881879478693008,
+      "full_train_gt_proto_cos": 0.4459889531135559
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.43800073862075806,
+      "inst": 0.40775266289711,
+      "overlap": 9.569530448061414e-06,
+      "spear": 0.0007514171302318573,
+      "full_train_gt_proto_cos": 0.44708752632141113
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.4365764558315277,
+      "inst": 0.4036080837249756,
+      "overlap": 9.576215234119445e-06,
+      "spear": 0.0008194223046302795,
+      "full_train_gt_proto_cos": 0.44756096601486206
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.4373939037322998,
+      "inst": 0.40314412117004395,
+      "overlap": 9.581124686519615e-06,
+      "spear": 0.0008514542132616043,
+      "full_train_gt_proto_cos": 0.44833651185035706
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.4378698170185089,
+      "inst": 0.4019078016281128,
+      "overlap": 9.587084605300333e-06,
+      "spear": 0.0008942559361457825,
+      "full_train_gt_proto_cos": 0.44906267523765564
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.4382164478302002,
+      "inst": 0.4012809991836548,
+      "overlap": 9.596908057574183e-06,
+      "spear": 0.0009185876697301865,
+      "full_train_gt_proto_cos": 0.45001962780952454
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.4558628797531128,
+      "inst": 0.4021618962287903,
+      "overlap": 9.61137811827939e-06,
+      "spear": 0.0013377200812101364,
+      "full_train_gt_proto_cos": 0.4503885805606842
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.45134320855140686,
+      "inst": 0.3990086019039154,
+      "overlap": 9.606290404917672e-06,
+      "spear": 0.0013035628944635391,
+      "full_train_gt_proto_cos": 0.4517882764339447
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.4566200077533722,
+      "inst": 0.39750760793685913,
+      "overlap": 9.617742762202397e-06,
+      "spear": 0.0014730002731084824,
+      "full_train_gt_proto_cos": 0.45186564326286316
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.4541589617729187,
+      "inst": 0.3984971046447754,
+      "overlap": 9.62591639108723e-06,
+      "spear": 0.0013867337256669998,
+      "full_train_gt_proto_cos": 0.4528786540031433
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.4719131886959076,
+      "inst": 0.3981514275074005,
+      "overlap": 9.631773536966648e-06,
+      "spear": 0.0018392279744148254,
+      "full_train_gt_proto_cos": 0.45279571413993835
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 8.0,
+      "anchor_hit_rate": 0.06896551724137931,
+      "total": 0.549781322479248,
+      "inst": 0.39650657773017883,
+      "overlap": 9.6560643214616e-06,
+      "spear": 0.0038270410150289536,
+      "full_train_gt_proto_cos": 0.4543246626853943
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.5620573163032532,
+      "inst": 0.3953525424003601,
+      "overlap": 9.633279660192784e-06,
+      "spear": 0.004162803292274475,
+      "full_train_gt_proto_cos": 0.4531412422657013
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.7513938546180725,
+      "inst": 0.3943769633769989,
+      "overlap": 9.660430805524811e-06,
+      "spear": 0.008920591324567795,
+      "full_train_gt_proto_cos": 0.4534374177455902
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.7387714982032776,
+      "inst": 0.39199814200401306,
+      "overlap": 9.663316632213537e-06,
+      "spear": 0.008664501830935478,
+      "full_train_gt_proto_cos": 0.45518991351127625
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.6847701668739319,
+      "inst": 0.3923165202140808,
+      "overlap": 9.632179171603639e-06,
+      "spear": 0.007306525483727455,
+      "full_train_gt_proto_cos": 0.453346848487854
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.656653642654419,
+      "inst": 0.39217156171798706,
+      "overlap": 9.664310709922574e-06,
+      "spear": 0.006607219576835632,
+      "full_train_gt_proto_cos": 0.455458402633667
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.6976587176322937,
+      "inst": 0.3929590582847595,
+      "overlap": 9.631735338189173e-06,
+      "spear": 0.007612677291035652,
+      "full_train_gt_proto_cos": 0.4542272686958313
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.6014431715011597,
+      "inst": 0.3926873505115509,
+      "overlap": 9.648600098444149e-06,
+      "spear": 0.005214070901274681,
+      "full_train_gt_proto_cos": 0.4549904763698578
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.5654785633087158,
+      "inst": 0.39149364829063416,
+      "overlap": 9.694627806311473e-06,
+      "spear": 0.0043447744101285934,
+      "full_train_gt_proto_cos": 0.4555385708808899
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.48309510946273804,
+      "inst": 0.3912581205368042,
+      "overlap": 9.666587175161112e-06,
+      "spear": 0.0022910907864570618,
+      "full_train_gt_proto_cos": 0.4557008445262909
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.45448893308639526,
+      "inst": 0.39051899313926697,
+      "overlap": 9.68537187873153e-06,
+      "spear": 0.001594405621290207,
+      "full_train_gt_proto_cos": 0.4567069113254547
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.4433189034461975,
+      "inst": 0.3890267610549927,
+      "overlap": 9.67449159361422e-06,
+      "spear": 0.001352466642856598,
+      "full_train_gt_proto_cos": 0.45708411931991577
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.45239439606666565,
+      "inst": 0.3879379332065582,
+      "overlap": 9.698711437522434e-06,
+      "spear": 0.0016065631061792374,
+      "full_train_gt_proto_cos": 0.4578157067298889
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.4823959469795227,
+      "inst": 0.38664495944976807,
+      "overlap": 9.693078936834354e-06,
+      "spear": 0.002388928085565567,
+      "full_train_gt_proto_cos": 0.4580878019332886
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.5631296038627625,
+      "inst": 0.3870897889137268,
+      "overlap": 9.72990437730914e-06,
+      "spear": 0.004396131262183189,
+      "full_train_gt_proto_cos": 0.45903968811035156
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.5320866703987122,
+      "inst": 0.38569870591163635,
+      "overlap": 9.688518730399664e-06,
+      "spear": 0.0036548543721437454,
+      "full_train_gt_proto_cos": 0.45844361186027527
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.5252377390861511,
+      "inst": 0.3874005079269409,
+      "overlap": 9.722920367494226e-06,
+      "spear": 0.0034410692751407623,
+      "full_train_gt_proto_cos": 0.45950934290885925
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.520148515701294,
+      "inst": 0.3843485116958618,
+      "overlap": 9.692880666989367e-06,
+      "spear": 0.003390153869986534,
+      "full_train_gt_proto_cos": 0.45921432971954346
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.4947066903114319,
+      "inst": 0.38451483845710754,
+      "overlap": 9.718446563056204e-06,
+      "spear": 0.002749936655163765,
+      "full_train_gt_proto_cos": 0.46086251735687256
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.4470629394054413,
+      "inst": 0.3817373514175415,
+      "overlap": 9.70568635239033e-06,
+      "spear": 0.001628287136554718,
+      "full_train_gt_proto_cos": 0.46080195903778076
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.4250255227088928,
+      "inst": 0.38276827335357666,
+      "overlap": 9.717771717987489e-06,
+      "spear": 0.0010515730828046799,
+      "full_train_gt_proto_cos": 0.4617871940135956
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.41176310181617737,
+      "inst": 0.38117945194244385,
+      "overlap": 9.727142241899855e-06,
+      "spear": 0.0007597282528877258,
+      "full_train_gt_proto_cos": 0.46217358112335205
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.41251152753829956,
+      "inst": 0.3798779547214508,
+      "overlap": 9.729877092468087e-06,
+      "spear": 0.0008109733462333679,
+      "full_train_gt_proto_cos": 0.46311962604522705
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.40464285016059875,
+      "inst": 0.3789147436618805,
+      "overlap": 9.741286703501828e-06,
+      "spear": 0.0006383322179317474,
+      "full_train_gt_proto_cos": 0.46337470412254333
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.40456873178482056,
+      "inst": 0.37852534651756287,
+      "overlap": 9.744626368046738e-06,
+      "spear": 0.0006462130695581436,
+      "full_train_gt_proto_cos": 0.46422192454338074
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.40038633346557617,
+      "inst": 0.3774191737174988,
+      "overlap": 9.748266165843233e-06,
+      "spear": 0.0005693044513463974,
+      "full_train_gt_proto_cos": 0.46512478590011597
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.3965591788291931,
+      "inst": 0.37604957818984985,
+      "overlap": 9.750438039191067e-06,
+      "spear": 0.0005078651010990143,
+      "full_train_gt_proto_cos": 0.4658636152744293
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.3956896662712097,
+      "inst": 0.3756832480430603,
+      "overlap": 9.758622582012322e-06,
+      "spear": 0.0004952810704708099,
+      "full_train_gt_proto_cos": 0.46640709042549133
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.39313024282455444,
+      "inst": 0.3740691840648651,
+      "overlap": 9.761882211023476e-06,
+      "spear": 0.0004716441035270691,
+      "full_train_gt_proto_cos": 0.4670940935611725
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.39308232069015503,
+      "inst": 0.37287113070487976,
+      "overlap": 9.765682989382185e-06,
+      "spear": 0.0005003958940505981,
+      "full_train_gt_proto_cos": 0.4675712287425995
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.39161011576652527,
+      "inst": 0.37163522839546204,
+      "overlap": 9.775330909178592e-06,
+      "spear": 0.0004944838583469391,
+      "full_train_gt_proto_cos": 0.46862417459487915
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.38991957902908325,
+      "inst": 0.37058061361312866,
+      "overlap": 9.775053513294552e-06,
+      "spear": 0.00047858618199825287,
+      "full_train_gt_proto_cos": 0.4693540334701538
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.38975515961647034,
+      "inst": 0.3696327209472656,
+      "overlap": 9.77968011284247e-06,
+      "spear": 0.0004981700330972672,
+      "full_train_gt_proto_cos": 0.4701198935508728
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.388943612575531,
+      "inst": 0.36806753277778625,
+      "overlap": 9.785504516912624e-06,
+      "spear": 0.0005170106887817383,
+      "full_train_gt_proto_cos": 0.4707624912261963
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.3901522159576416,
+      "inst": 0.36721789836883545,
+      "overlap": 9.79597280093003e-06,
+      "spear": 0.0005684606730937958,
+      "full_train_gt_proto_cos": 0.47140371799468994
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.3886278569698334,
+      "inst": 0.3661172688007355,
+      "overlap": 9.79976357484702e-06,
+      "spear": 0.0005578640848398209,
+      "full_train_gt_proto_cos": 0.47199633717536926
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.39015066623687744,
+      "inst": 0.3652302622795105,
+      "overlap": 9.806797606870532e-06,
+      "spear": 0.0006181057542562485,
+      "full_train_gt_proto_cos": 0.4727235734462738
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.3903414309024811,
+      "inst": 0.36471328139305115,
+      "overlap": 9.807692549657077e-06,
+      "spear": 0.0006358008831739426,
+      "full_train_gt_proto_cos": 0.473291277885437
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.38917621970176697,
+      "inst": 0.36370649933815,
+      "overlap": 9.804664841794875e-06,
+      "spear": 0.0006318408995866776,
+      "full_train_gt_proto_cos": 0.47424033284187317
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.3875589668750763,
+      "inst": 0.3625357151031494,
+      "overlap": 9.816647434490733e-06,
+      "spear": 0.0006206724792718887,
+      "full_train_gt_proto_cos": 0.47448763251304626
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.3898051977157593,
+      "inst": 0.3611007332801819,
+      "overlap": 9.828109796217177e-06,
+      "spear": 0.0007126964628696442,
+      "full_train_gt_proto_cos": 0.47523635625839233
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.3938702642917633,
+      "inst": 0.3602973520755768,
+      "overlap": 9.815020348469261e-06,
+      "spear": 0.0008344147354364395,
+      "full_train_gt_proto_cos": 0.4758986830711365
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.39748653769493103,
+      "inst": 0.3592492938041687,
+      "overlap": 9.828843758441508e-06,
+      "spear": 0.0009510163217782974,
+      "full_train_gt_proto_cos": 0.47679609060287476
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.4005998969078064,
+      "inst": 0.35948872566223145,
+      "overlap": 9.820411833061371e-06,
+      "spear": 0.0010228697210550308,
+      "full_train_gt_proto_cos": 0.47705769538879395
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.40877437591552734,
+      "inst": 0.35818952322006226,
+      "overlap": 9.847704859566875e-06,
+      "spear": 0.00125969760119915,
+      "full_train_gt_proto_cos": 0.4778344929218292
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.41839444637298584,
+      "inst": 0.3574565052986145,
+      "overlap": 9.834473530645482e-06,
+      "spear": 0.0015185307711362839,
+      "full_train_gt_proto_cos": 0.4782062768936157
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.4339349567890167,
+      "inst": 0.3568447530269623,
+      "overlap": 9.849362868408207e-06,
+      "spear": 0.0019223298877477646,
+      "full_train_gt_proto_cos": 0.47886011004447937
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.4211457371711731,
+      "inst": 0.3551548719406128,
+      "overlap": 9.839587619353551e-06,
+      "spear": 0.001644851639866829,
+      "full_train_gt_proto_cos": 0.47900357842445374
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.45622706413269043,
+      "inst": 0.35476505756378174,
+      "overlap": 9.868783308775164e-06,
+      "spear": 0.0025316160172224045,
+      "full_train_gt_proto_cos": 0.47988206148147583
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.4839789867401123,
+      "inst": 0.3540284335613251,
+      "overlap": 9.829708687902894e-06,
+      "spear": 0.00324384868144989,
+      "full_train_gt_proto_cos": 0.47959843277931213
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.44258156418800354,
+      "inst": 0.3533260226249695,
+      "overlap": 9.86173290584702e-06,
+      "spear": 0.0022264569997787476,
+      "full_train_gt_proto_cos": 0.48064863681793213
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.47164851427078247,
+      "inst": 0.3523879647254944,
+      "overlap": 9.856158612819854e-06,
+      "spear": 0.002976585179567337,
+      "full_train_gt_proto_cos": 0.4811931848526001
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.5063241124153137,
+      "inst": 0.3519723117351532,
+      "overlap": 9.835676792135928e-06,
+      "spear": 0.003853878006339073,
+      "full_train_gt_proto_cos": 0.4816209077835083
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.47579583525657654,
+      "inst": 0.3513965308666229,
+      "overlap": 9.870821486401837e-06,
+      "spear": 0.0031050480902194977,
+      "full_train_gt_proto_cos": 0.48161932826042175
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.4952755570411682,
+      "inst": 0.3507353961467743,
+      "overlap": 9.871671863947995e-06,
+      "spear": 0.003608567640185356,
+      "full_train_gt_proto_cos": 0.482697069644928
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.44785094261169434,
+      "inst": 0.3505280017852783,
+      "overlap": 9.868987945083063e-06,
+      "spear": 0.002428138628602028,
+      "full_train_gt_proto_cos": 0.4824940264225006
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.45327967405319214,
+      "inst": 0.34974175691604614,
+      "overlap": 9.876845979306381e-06,
+      "spear": 0.002583509311079979,
+      "full_train_gt_proto_cos": 0.483914852142334
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.46196335554122925,
+      "inst": 0.3484875559806824,
+      "overlap": 9.874440365820192e-06,
+      "spear": 0.00283195823431015,
+      "full_train_gt_proto_cos": 0.4825217127799988
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.5215242505073547,
+      "inst": 0.34901800751686096,
+      "overlap": 9.886772204481531e-06,
+      "spear": 0.004307713359594345,
+      "full_train_gt_proto_cos": 0.48495009541511536
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.6292760968208313,
+      "inst": 0.34791263937950134,
+      "overlap": 9.847098226600792e-06,
+      "spear": 0.007029162719845772,
+      "full_train_gt_proto_cos": 0.48269587755203247
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.7877917289733887,
+      "inst": 0.346404492855072,
+      "overlap": 9.924325240717735e-06,
+      "spear": 0.011029716581106186,
+      "full_train_gt_proto_cos": 0.48459020256996155
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.4813632667064667,
+      "inst": 0.3463980257511139,
+      "overlap": 9.856773431238253e-06,
+      "spear": 0.0033692028373479843,
+      "full_train_gt_proto_cos": 0.48312634229660034
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.43178677558898926,
+      "inst": 0.347171425819397,
+      "overlap": 9.878063792712055e-06,
+      "spear": 0.0021104440093040466,
+      "full_train_gt_proto_cos": 0.48450377583503723
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.40513792634010315,
+      "inst": 0.34628942608833313,
+      "overlap": 9.89071122603491e-06,
+      "spear": 0.0014662668108940125,
+      "full_train_gt_proto_cos": 0.4846328794956207
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.3892848491668701,
+      "inst": 0.34428805112838745,
+      "overlap": 9.875641808321234e-06,
+      "spear": 0.0011199824512004852,
+      "full_train_gt_proto_cos": 0.4849790930747986
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.37874287366867065,
+      "inst": 0.3433370590209961,
+      "overlap": 9.885077815852128e-06,
+      "spear": 0.0008802022784948349,
+      "full_train_gt_proto_cos": 0.48592090606689453
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.378662109375,
+      "inst": 0.3411993980407715,
+      "overlap": 9.884777682600543e-06,
+      "spear": 0.0009316261857748032,
+      "full_train_gt_proto_cos": 0.48632946610450745
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.3780020773410797,
+      "inst": 0.3411087393760681,
+      "overlap": 9.8981963674305e-06,
+      "spear": 0.0009173844009637833,
+      "full_train_gt_proto_cos": 0.48679444193840027
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.36648571491241455,
+      "inst": 0.34017348289489746,
+      "overlap": 9.888557542581111e-06,
+      "spear": 0.0006528627127408981,
+      "full_train_gt_proto_cos": 0.487108439207077
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.3747510612010956,
+      "inst": 0.33920490741729736,
+      "overlap": 9.895647053781431e-06,
+      "spear": 0.0008837059140205383,
+      "full_train_gt_proto_cos": 0.48791900277137756
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.365310400724411,
+      "inst": 0.33774322271347046,
+      "overlap": 9.901049452309962e-06,
+      "spear": 0.0006842296570539474,
+      "full_train_gt_proto_cos": 0.488215833902359
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.36687323451042175,
+      "inst": 0.3370138108730316,
+      "overlap": 9.902348210744094e-06,
+      "spear": 0.0007415339350700378,
+      "full_train_gt_proto_cos": 0.4888445734977722
+    }
+  ],
+  "val": [
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 6.955588340759277,
+      "inst": 0.7809380292892456,
+      "overlap": 8.315075683640316e-05,
+      "spear": 0.15432468056678772
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 5.239023208618164,
+      "inst": 0.7861769795417786,
+      "overlap": 8.288708340842277e-05,
+      "spear": 0.11127971857786179
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 8.0,
+      "anchor_hit_rate": 0.06896551724137931,
+      "total": 4.270778179168701,
+      "inst": 0.7860308885574341,
+      "overlap": 8.262975461548194e-05,
+      "spear": 0.08707735687494278
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 7.0,
+      "anchor_hit_rate": 0.0603448275862069,
+      "total": 1.4077284336090088,
+      "inst": 0.7852177023887634,
+      "overlap": 8.245021308539435e-05,
+      "spear": 0.015521546825766563
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 8.0,
+      "anchor_hit_rate": 0.06896551724137931,
+      "total": 1.1907272338867188,
+      "inst": 0.7822632789611816,
+      "overlap": 8.231018728110939e-05,
+      "spear": 0.01017044298350811
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 1.0799559354782104,
+      "inst": 0.7787421345710754,
+      "overlap": 8.225629426306114e-05,
+      "spear": 0.007489215582609177
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 1.0012872219085693,
+      "inst": 0.7724353671073914,
+      "overlap": 8.224441990023479e-05,
+      "spear": 0.005680173635482788
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.9487898349761963,
+      "inst": 0.7679280042648315,
+      "overlap": 8.224667544709519e-05,
+      "spear": 0.004480425268411636
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.917944073677063,
+      "inst": 0.7630413770675659,
+      "overlap": 8.232427353505045e-05,
+      "spear": 0.0038314051926136017
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.8879389762878418,
+      "inst": 0.7576877474784851,
+      "overlap": 8.23984737507999e-05,
+      "spear": 0.0032150819897651672
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.8654983043670654,
+      "inst": 0.7520470023155212,
+      "overlap": 8.250344399129972e-05,
+      "spear": 0.0027950312942266464
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.8467309474945068,
+      "inst": 0.7462433576583862,
+      "overlap": 8.261881157523021e-05,
+      "spear": 0.00247088260948658
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.8314415216445923,
+      "inst": 0.7398489117622375,
+      "overlap": 8.27647018013522e-05,
+      "spear": 0.0022484324872493744
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.8164684772491455,
+      "inst": 0.732955276966095,
+      "overlap": 8.291374251712114e-05,
+      "spear": 0.002046370878815651
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.8024696111679077,
+      "inst": 0.7263559699058533,
+      "overlap": 8.307729876833037e-05,
+      "spear": 0.0018613021820783615
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.7891034483909607,
+      "inst": 0.7193686962127686,
+      "overlap": 8.324721420649439e-05,
+      "spear": 0.0017017442733049393
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.777572512626648,
+      "inst": 0.7126165628433228,
+      "overlap": 8.344812522409484e-05,
+      "spear": 0.001582171767950058
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.7663230895996094,
+      "inst": 0.70493084192276,
+      "overlap": 8.364975656149909e-05,
+      "spear": 0.0014929790049791336
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.7545821070671082,
+      "inst": 0.6974285244941711,
+      "overlap": 8.387415437027812e-05,
+      "spear": 0.0013869032263755798
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.7441831827163696,
+      "inst": 0.6899763345718384,
+      "overlap": 8.411558519583195e-05,
+      "spear": 0.0013131145387887955
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.7340444922447205,
+      "inst": 0.6820701360702515,
+      "overlap": 8.432886534137651e-05,
+      "spear": 0.001257196068763733
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.7252237796783447,
+      "inst": 0.6759811639785767,
+      "overlap": 8.456918294541538e-05,
+      "spear": 0.0011887811124324799
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.7152858972549438,
+      "inst": 0.6683495044708252,
+      "overlap": 8.481579425279051e-05,
+      "spear": 0.0011310037225484848
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.708593487739563,
+      "inst": 0.6611946821212769,
+      "overlap": 8.507227175869048e-05,
+      "spear": 0.001142432913184166
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.7018095254898071,
+      "inst": 0.6536778807640076,
+      "overlap": 8.533697837265208e-05,
+      "spear": 0.0011606216430664062
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.6985532641410828,
+      "inst": 0.6477270126342773,
+      "overlap": 8.564881864003837e-05,
+      "spear": 0.0012278314679861069
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.690716028213501,
+      "inst": 0.6401771903038025,
+      "overlap": 8.590253855800256e-05,
+      "spear": 0.0012205187231302261
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.6772668957710266,
+      "inst": 0.6338828206062317,
+      "overlap": 8.623868779977784e-05,
+      "spear": 0.0010414831340312958
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.6933126449584961,
+      "inst": 0.6271458268165588,
+      "overlap": 8.653933764435351e-05,
+      "spear": 0.001610899344086647
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.7279849052429199,
+      "inst": 0.6212376952171326,
+      "overlap": 8.68998613441363e-05,
+      "spear": 0.002625230699777603
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.7364504337310791,
+      "inst": 0.6144959926605225,
+      "overlap": 8.713057468412444e-05,
+      "spear": 0.0030052941292524338
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.7085409760475159,
+      "inst": 0.6089389324188232,
+      "overlap": 8.749948756303638e-05,
+      "spear": 0.002446301281452179
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 9.0,
+      "anchor_hit_rate": 0.07758620689655173,
+      "total": 0.692292332649231,
+      "inst": 0.6044023633003235,
+      "overlap": 8.786158286966383e-05,
+      "spear": 0.002153318375349045
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.6636237502098083,
+      "inst": 0.599397599697113,
+      "overlap": 8.814049942884594e-05,
+      "spear": 0.0015615858137607574
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.6430596709251404,
+      "inst": 0.5946307182312012,
+      "overlap": 8.843075192999095e-05,
+      "spear": 0.0011665094643831253
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.6374750137329102,
+      "inst": 0.5895431041717529,
+      "overlap": 8.866621647030115e-05,
+      "spear": 0.0011539645493030548
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.6371102333068848,
+      "inst": 0.5844621062278748,
+      "overlap": 8.886631985660642e-05,
+      "spear": 0.001271769404411316
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.6464229226112366,
+      "inst": 0.5801949501037598,
+      "overlap": 8.906265429686755e-05,
+      "spear": 0.0016111675649881363
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.6459401845932007,
+      "inst": 0.5752456784248352,
+      "overlap": 8.925190195441246e-05,
+      "spear": 0.0017227362841367722
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.6290968656539917,
+      "inst": 0.5703495144844055,
+      "overlap": 8.953068754635751e-05,
+      "spear": 0.0014239177107810974
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.6342776417732239,
+      "inst": 0.5659816861152649,
+      "overlap": 8.972475188784301e-05,
+      "spear": 0.0016625374555587769
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.6294832825660706,
+      "inst": 0.5618916153907776,
+      "overlap": 8.984953456092626e-05,
+      "spear": 0.0016448665410280228
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.6670586466789246,
+      "inst": 0.5580143928527832,
+      "overlap": 9.021620644489303e-05,
+      "spear": 0.002680998295545578
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 10.0,
+      "anchor_hit_rate": 0.08620689655172414,
+      "total": 0.6752453446388245,
+      "inst": 0.5544319748878479,
+      "overlap": 9.027234045788646e-05,
+      "spear": 0.00297519750893116
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6459176540374756,
+      "inst": 0.5499346852302551,
+      "overlap": 9.063403558684513e-05,
+      "spear": 0.002354256808757782
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.664334774017334,
+      "inst": 0.5471755266189575,
+      "overlap": 9.090923413168639e-05,
+      "spear": 0.002883525565266609
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.684928297996521,
+      "inst": 0.5436296463012695,
+      "overlap": 9.119037713389844e-05,
+      "spear": 0.0034868717193603516
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.6484934687614441,
+      "inst": 0.5433040857315063,
+      "overlap": 9.135208529187366e-05,
+      "spear": 0.002584058791399002
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.6940432190895081,
+      "inst": 0.540332019329071,
+      "overlap": 9.161558409687132e-05,
+      "spear": 0.003796972334384918
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.6532596349716187,
+      "inst": 0.5364053249359131,
+      "overlap": 9.168829274130985e-05,
+      "spear": 0.002875514328479767
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6325997710227966,
+      "inst": 0.5343220829963684,
+      "overlap": 9.212216536980122e-05,
+      "spear": 0.002410879358649254
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.6116920709609985,
+      "inst": 0.5303007364273071,
+      "overlap": 9.223981032846496e-05,
+      "spear": 0.0019886642694473267
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.5923174023628235,
+      "inst": 0.527195930480957,
+      "overlap": 9.23777261050418e-05,
+      "spear": 0.001581849530339241
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.6200912594795227,
+      "inst": 0.525673508644104,
+      "overlap": 9.25622443901375e-05,
+      "spear": 0.0023141633719205856
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.6684273481369019,
+      "inst": 0.5223932862281799,
+      "overlap": 9.277812205255032e-05,
+      "spear": 0.003604462370276451
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.7052461504936218,
+      "inst": 0.5199695825576782,
+      "overlap": 9.280364611186087e-05,
+      "spear": 0.0045855119824409485
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.6011744141578674,
+      "inst": 0.5178540349006653,
+      "overlap": 9.302588296122849e-05,
+      "spear": 0.002036498859524727
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.5855977535247803,
+      "inst": 0.5145735740661621,
+      "overlap": 9.319339733337983e-05,
+      "spear": 0.0017290078103542328
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.5639820098876953,
+      "inst": 0.5134492516517639,
+      "overlap": 9.343992860522121e-05,
+      "spear": 0.001216597855091095
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.5494421124458313,
+      "inst": 0.511027991771698,
+      "overlap": 9.351773041998968e-05,
+      "spear": 0.0009135939180850983
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.5506218671798706,
+      "inst": 0.5094051361083984,
+      "overlap": 9.366768063046038e-05,
+      "spear": 0.0009835846722126007
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5443941950798035,
+      "inst": 0.5065975785255432,
+      "overlap": 9.374124056193978e-05,
+      "spear": 0.0008980445563793182
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5422496199607849,
+      "inst": 0.5056651830673218,
+      "overlap": 9.391280764248222e-05,
+      "spear": 0.0008676536381244659
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5430483818054199,
+      "inst": 0.5031798481941223,
+      "overlap": 9.40612590056844e-05,
+      "spear": 0.0009496826678514481
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.537914514541626,
+      "inst": 0.5012061595916748,
+      "overlap": 9.419210982741788e-05,
+      "spear": 0.0008706133812665939
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 17.0,
+      "anchor_hit_rate": 0.14655172413793102,
+      "total": 0.535693883895874,
+      "inst": 0.49986058473587036,
+      "overlap": 9.425036114407703e-05,
+      "spear": 0.0008487068116664886
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5396069288253784,
+      "inst": 0.49889692664146423,
+      "overlap": 9.443552698940039e-05,
+      "spear": 0.0009705331176519394
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5311103463172913,
+      "inst": 0.49645769596099854,
+      "overlap": 9.440313442610204e-05,
+      "spear": 0.0008191131055355072
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 17.0,
+      "anchor_hit_rate": 0.14655172413793102,
+      "total": 0.5265879034996033,
+      "inst": 0.4939122200012207,
+      "overlap": 9.444817987969145e-05,
+      "spear": 0.0007696691900491714
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 17.0,
+      "anchor_hit_rate": 0.14655172413793102,
+      "total": 0.5267927646636963,
+      "inst": 0.4934348464012146,
+      "overlap": 9.45892752497457e-05,
+      "spear": 0.0007866546511650085
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 17.0,
+      "anchor_hit_rate": 0.14655172413793102,
+      "total": 0.5275066494941711,
+      "inst": 0.4908878803253174,
+      "overlap": 9.469216456636786e-05,
+      "spear": 0.0008681230247020721
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 17.0,
+      "anchor_hit_rate": 0.14655172413793102,
+      "total": 0.5223786234855652,
+      "inst": 0.4904470145702362,
+      "overlap": 9.476301056565717e-05,
+      "spear": 0.0007509086281061172
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 17.0,
+      "anchor_hit_rate": 0.14655172413793102,
+      "total": 0.5302309393882751,
+      "inst": 0.48822784423828125,
+      "overlap": 9.471609519096091e-05,
+      "spear": 0.0010027196258306503
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 17.0,
+      "anchor_hit_rate": 0.14655172413793102,
+      "total": 0.5285578966140747,
+      "inst": 0.487369179725647,
+      "overlap": 9.489427611697465e-05,
+      "spear": 0.0009822715073823929
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 17.0,
+      "anchor_hit_rate": 0.14655172413793102,
+      "total": 0.5336387753486633,
+      "inst": 0.48534268140792847,
+      "overlap": 9.496310667600483e-05,
+      "spear": 0.0011599212884902954
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5322020649909973,
+      "inst": 0.4832102954387665,
+      "overlap": 9.501668682787567e-05,
+      "spear": 0.0011772867292165756
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5627782344818115,
+      "inst": 0.4833543598651886,
+      "overlap": 9.49559616856277e-05,
+      "spear": 0.0019381195306777954
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5577513575553894,
+      "inst": 0.4816517233848572,
+      "overlap": 9.519635932520032e-05,
+      "spear": 0.0018548928201198578
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5501111149787903,
+      "inst": 0.47876280546188354,
+      "overlap": 9.506854985374957e-05,
+      "spear": 0.0017361734062433243
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.53175288438797,
+      "inst": 0.47820258140563965,
+      "overlap": 9.523798507871106e-05,
+      "spear": 0.0012911390513181686
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.527473509311676,
+      "inst": 0.47681546211242676,
+      "overlap": 9.530268289381638e-05,
+      "spear": 0.001218799501657486
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5313529372215271,
+      "inst": 0.47687965631484985,
+      "overlap": 9.526967915007845e-05,
+      "spear": 0.0013141985982656479
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5192967653274536,
+      "inst": 0.4769521951675415,
+      "overlap": 9.536488505546004e-05,
+      "spear": 0.0010109301656484604
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5179362297058105,
+      "inst": 0.47306203842163086,
+      "overlap": 9.549499372951686e-05,
+      "spear": 0.001074107363820076
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5460643768310547,
+      "inst": 0.47409266233444214,
+      "overlap": 9.548004891257733e-05,
+      "spear": 0.0017515532672405243
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5348256826400757,
+      "inst": 0.47104692459106445,
+      "overlap": 9.565428626956418e-05,
+      "spear": 0.0015466418117284775
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5211138725280762,
+      "inst": 0.47118863463401794,
+      "overlap": 9.573556599207222e-05,
+      "spear": 0.0012002643197774887
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5167285799980164,
+      "inst": 0.46782293915748596,
+      "overlap": 9.59657336352393e-05,
+      "spear": 0.0011746585369110107
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.5184177160263062,
+      "inst": 0.46725860238075256,
+      "overlap": 9.589383989805356e-05,
+      "spear": 0.0012310296297073364
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.5152117609977722,
+      "inst": 0.4647460877895355,
+      "overlap": 9.606624371372163e-05,
+      "spear": 0.0012136083096265793
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.5092471837997437,
+      "inst": 0.4630136787891388,
+      "overlap": 9.609217522665858e-05,
+      "spear": 0.0011077914386987686
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.5132642388343811,
+      "inst": 0.46222326159477234,
+      "overlap": 9.63599159149453e-05,
+      "spear": 0.0012278445065021515
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.5330929756164551,
+      "inst": 0.46052441000938416,
+      "overlap": 9.619125921744853e-05,
+      "spear": 0.0017661172896623611
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.6505444049835205,
+      "inst": 0.45924821496009827,
+      "overlap": 9.667775884736329e-05,
+      "spear": 0.004734065383672714
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.6607359647750854,
+      "inst": 0.45685961842536926,
+      "overlap": 9.607646643416956e-05,
+      "spear": 0.005048871040344238
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.5887986421585083,
+      "inst": 0.4570624828338623,
+      "overlap": 9.65171930147335e-05,
+      "spear": 0.003245145082473755
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.7222391366958618,
+      "inst": 0.4568333327770233,
+      "overlap": 9.664044046076015e-05,
+      "spear": 0.006586825475096703
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.5955045223236084,
+      "inst": 0.4542277753353119,
+      "overlap": 9.642266377341002e-05,
+      "spear": 0.0034837089478969574
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.5427371263504028,
+      "inst": 0.4542649984359741,
+      "overlap": 9.679012146079913e-05,
+      "spear": 0.002163410186767578
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.5128684043884277,
+      "inst": 0.4527301788330078,
+      "overlap": 9.671103180153295e-05,
+      "spear": 0.0014551002532243729
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.484833687543869,
+      "inst": 0.4516673684120178,
+      "overlap": 9.674390457803383e-05,
+      "spear": 0.0007807854562997818
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.4877736568450928,
+      "inst": 0.45136380195617676,
+      "overlap": 9.671004954725504e-05,
+      "spear": 0.0008618924766778946
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.486005574464798,
+      "inst": 0.44984930753707886,
+      "overlap": 9.687313286121935e-05,
+      "spear": 0.0008554700762033463
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.476012259721756,
+      "inst": 0.44776612520217896,
+      "overlap": 9.696793131297454e-05,
+      "spear": 0.0006576701998710632
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.4755159914493561,
+      "inst": 0.44647741317749023,
+      "overlap": 9.693624451756477e-05,
+      "spear": 0.0006774961948394775
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.4705105721950531,
+      "inst": 0.4454135298728943,
+      "overlap": 9.709727601148188e-05,
+      "spear": 0.0005788765847682953
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.46978074312210083,
+      "inst": 0.44394513964653015,
+      "overlap": 9.702214447315782e-05,
+      "spear": 0.0005973782390356064
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.4646035432815552,
+      "inst": 0.4427143931388855,
+      "overlap": 9.718060755403712e-05,
+      "spear": 0.0004986375570297241
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.46740928292274475,
+      "inst": 0.44196638464927673,
+      "overlap": 9.720889647724107e-05,
+      "spear": 0.0005874671041965485
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.46445679664611816,
+      "inst": 0.4403300881385803,
+      "overlap": 9.72824782365933e-05,
+      "spear": 0.000554526224732399
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.46059033274650574,
+      "inst": 0.4392409026622772,
+      "overlap": 9.731573663884774e-05,
+      "spear": 0.000485079362988472
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.4617927074432373,
+      "inst": 0.4384854733943939,
+      "overlap": 9.742412657942623e-05,
+      "spear": 0.0005339700728654861
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.45928478240966797,
+      "inst": 0.4376446306705475,
+      "overlap": 9.747676085680723e-05,
+      "spear": 0.000492265447974205
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.45958808064460754,
+      "inst": 0.43652597069740295,
+      "overlap": 9.753545600688085e-05,
+      "spear": 0.0005277842283248901
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.4593978226184845,
+      "inst": 0.436281681060791,
+      "overlap": 9.758126543601975e-05,
+      "spear": 0.000529114156961441
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.4574257433414459,
+      "inst": 0.43434271216392517,
+      "overlap": 9.771981422090903e-05,
+      "spear": 0.0005282163619995117
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.45780208706855774,
+      "inst": 0.4332706332206726,
+      "overlap": 9.770176984602585e-05,
+      "spear": 0.0005644354969263077
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.4636531472206116,
+      "inst": 0.43258288502693176,
+      "overlap": 9.787597809918225e-05,
+      "spear": 0.0007278192788362503
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.4627952575683594,
+      "inst": 0.4308546185493469,
+      "overlap": 9.782662527868524e-05,
+      "spear": 0.0007496029138565063
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.4551910161972046,
+      "inst": 0.4298768937587738,
+      "overlap": 9.792809578357264e-05,
+      "spear": 0.0005838889628648758
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.46967220306396484,
+      "inst": 0.4285740256309509,
+      "overlap": 9.792933269636706e-05,
+      "spear": 0.000978490337729454
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.48119106888771057,
+      "inst": 0.42719852924346924,
+      "overlap": 9.814509394345805e-05,
+      "spear": 0.0013007409870624542
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.48948362469673157,
+      "inst": 0.4263986349105835,
+      "overlap": 9.801889973459765e-05,
+      "spear": 0.0015281140804290771
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.4860881567001343,
+      "inst": 0.4252643585205078,
+      "overlap": 9.830017370404676e-05,
+      "spear": 0.0014714449644088745
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 16.0,
+      "anchor_hit_rate": 0.13793103448275862,
+      "total": 0.48810791969299316,
+      "inst": 0.4234738051891327,
+      "overlap": 9.81416305876337e-05,
+      "spear": 0.0015667825937271118
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.4742293655872345,
+      "inst": 0.42283856868743896,
+      "overlap": 9.839488484431058e-05,
+      "spear": 0.0012355726212263107
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.506767988204956,
+      "inst": 0.4220671057701111,
+      "overlap": 9.812555799726397e-05,
+      "spear": 0.002068459987640381
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.5734362602233887,
+      "inst": 0.4203301668167114,
+      "overlap": 9.880232391878963e-05,
+      "spear": 0.003778252750635147
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.613678514957428,
+      "inst": 0.4192356467247009,
+      "overlap": 9.830900671659037e-05,
+      "spear": 0.004811916500329971
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.8184619545936584,
+      "inst": 0.4191255569458008,
+      "overlap": 9.881476580630988e-05,
+      "spear": 0.00993400253355503
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.6045711636543274,
+      "inst": 0.4190767705440521,
+      "overlap": 9.886658517643809e-05,
+      "spear": 0.004587925970554352
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.5828824043273926,
+      "inst": 0.4166777431964874,
+      "overlap": 9.841607243288308e-05,
+      "spear": 0.004105906933546066
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.7082898616790771,
+      "inst": 0.41662678122520447,
+      "overlap": 9.899193537421525e-05,
+      "spear": 0.007242079824209213
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.6820789575576782,
+      "inst": 0.41769546270370483,
+      "overlap": 9.821241837926209e-05,
+      "spear": 0.00656048022210598
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.5393873453140259,
+      "inst": 0.415981262922287,
+      "overlap": 9.858088014880195e-05,
+      "spear": 0.0030358601361513138
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.5521785020828247,
+      "inst": 0.41635531187057495,
+      "overlap": 9.849284106167033e-05,
+      "spear": 0.003346335142850876
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5203309655189514,
+      "inst": 0.4152413010597229,
+      "overlap": 9.890442015603185e-05,
+      "spear": 0.0025777891278266907
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.46955806016921997,
+      "inst": 0.41474321484565735,
+      "overlap": 9.87246967270039e-05,
+      "spear": 0.0013210084289312363
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.4533647298812866,
+      "inst": 0.413545697927475,
+      "overlap": 9.87476232694462e-05,
+      "spear": 0.0009461026638746262
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.47514230012893677,
+      "inst": 0.4127092659473419,
+      "overlap": 9.902281453832984e-05,
+      "spear": 0.0015113148838281631
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 14.0,
+      "anchor_hit_rate": 0.1206896551724138,
+      "total": 0.4950712323188782,
+      "inst": 0.4115999937057495,
+      "overlap": 9.866287291515619e-05,
+      "spear": 0.0020374488085508347
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 15.0,
+      "anchor_hit_rate": 0.12931034482758622,
+      "total": 0.5150424242019653,
+      "inst": 0.4113147258758545,
+      "overlap": 9.933855471899733e-05,
+      "spear": 0.002543523907661438
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.4682857394218445,
+      "inst": 0.4092271029949188,
+      "overlap": 9.890572255244479e-05,
+      "spear": 0.0014270134270191193
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.495709091424942,
+      "inst": 0.409773051738739,
+      "overlap": 9.922028402797878e-05,
+      "spear": 0.0020987913012504578
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.47449934482574463,
+      "inst": 0.40855130553245544,
+      "overlap": 9.904210310196504e-05,
+      "spear": 0.0015991795808076859
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.5448848605155945,
+      "inst": 0.4081112742424011,
+      "overlap": 9.907370258588344e-05,
+      "spear": 0.0033698026090860367
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.4857625365257263,
+      "inst": 0.40642908215522766,
+      "overlap": 9.894811228150502e-05,
+      "spear": 0.0019338633865118027
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.44868502020835876,
+      "inst": 0.4053174555301666,
+      "overlap": 9.923832112690434e-05,
+      "spear": 0.0010345708578824997
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.4406917095184326,
+      "inst": 0.4052775800228119,
+      "overlap": 9.906565537676215e-05,
+      "spear": 0.0008358210325241089
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.4446951150894165,
+      "inst": 0.4022490680217743,
+      "overlap": 9.926813072524965e-05,
+      "spear": 0.0010115168988704681
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.4343290328979492,
+      "inst": 0.40251708030700684,
+      "overlap": 9.919752483256161e-05,
+      "spear": 0.0007456988096237183
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.43033528327941895,
+      "inst": 0.40176814794540405,
+      "overlap": 9.936022979672998e-05,
+      "spear": 0.0006644986569881439
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.424715131521225,
+      "inst": 0.40094882249832153,
+      "overlap": 9.934091940522194e-05,
+      "spear": 0.0005444865673780441
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.4221329092979431,
+      "inst": 0.4002079665660858,
+      "overlap": 9.934549598256126e-05,
+      "spear": 0.0004984494298696518
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.42100104689598083,
+      "inst": 0.39901024103164673,
+      "overlap": 9.937037975760177e-05,
+      "spear": 0.0005000848323106766
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.41900548338890076,
+      "inst": 0.3982146978378296,
+      "overlap": 9.947844228008762e-05,
+      "spear": 0.0004700310528278351
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.41791462898254395,
+      "inst": 0.3970474600791931,
+      "overlap": 9.948401566362008e-05,
+      "spear": 0.00047193653881549835
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.41765281558036804,
+      "inst": 0.3961820900440216,
+      "overlap": 9.96284288703464e-05,
+      "spear": 0.00048695504665374756
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.416189968585968,
+      "inst": 0.39589032530784607,
+      "overlap": 9.958825830835849e-05,
+      "spear": 0.0004576966166496277
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.41667401790618896,
+      "inst": 0.3949921131134033,
+      "overlap": 9.962531476048753e-05,
+      "spear": 0.0004922356456518173
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.41454192996025085,
+      "inst": 0.39363929629325867,
+      "overlap": 9.962343028746545e-05,
+      "spear": 0.00047275424003601074
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.41619622707366943,
+      "inst": 0.39273443818092346,
+      "overlap": 9.978331945603713e-05,
+      "spear": 0.0005366522818803787
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.4132435917854309,
+      "inst": 0.3914690911769867,
+      "overlap": 9.979738388210535e-05,
+      "spear": 0.0004944633692502975
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.41215980052948,
+      "inst": 0.39059749245643616,
+      "overlap": 9.993554704124108e-05,
+      "spear": 0.0004890896379947662
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.4199943542480469,
+      "inst": 0.38960015773773193,
+      "overlap": 9.981122275348753e-05,
+      "spear": 0.0007099490612745285
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.41242092847824097,
+      "inst": 0.3884980082511902,
+      "overlap": 9.99114490696229e-05,
+      "spear": 0.0005481168627738953
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.41176703572273254,
+      "inst": 0.38664987683296204,
+      "overlap": 9.99319163383916e-05,
+      "spear": 0.0005779620260000229
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.4177619516849518,
+      "inst": 0.38670969009399414,
+      "overlap": 9.998722816817462e-05,
+      "spear": 0.0007263123989105225
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.41540664434432983,
+      "inst": 0.3882863521575928,
+      "overlap": 0.00010000116162700579,
+      "spear": 0.000628005713224411
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.4154060482978821,
+      "inst": 0.3838275969028473,
+      "overlap": 0.00010014974395744503,
+      "spear": 0.0007393863052129745
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.4285185635089874,
+      "inst": 0.38798606395721436,
+      "overlap": 9.990123362513259e-05,
+      "spear": 0.0009633619338274002
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.4223991930484772,
+      "inst": 0.3817737400531769,
+      "overlap": 0.0001002786957542412,
+      "spear": 0.0009654965251684189
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.41727182269096375,
+      "inst": 0.3832703232765198,
+      "overlap": 0.00010017686145147309,
+      "spear": 0.0007999483495950699
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.4390699565410614,
+      "inst": 0.3839704692363739,
+      "overlap": 0.00010038258187705651,
+      "spear": 0.0013272948563098907
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.47070005536079407,
+      "inst": 0.3834787905216217,
+      "overlap": 0.00010012950951931998,
+      "spear": 0.0021304674446582794
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.47240695357322693,
+      "inst": 0.3817971348762512,
+      "overlap": 0.00010050146374851465,
+      "spear": 0.0022149961441755295
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.4793917238712311,
+      "inst": 0.38126683235168457,
+      "overlap": 0.00010023988579632714,
+      "spear": 0.002403002232313156
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.483502060174942,
+      "inst": 0.37681686878204346,
+      "overlap": 0.00010023813956649974,
+      "spear": 0.002617010846734047
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 13.0,
+      "anchor_hit_rate": 0.11206896551724138,
+      "total": 0.50583815574646,
+      "inst": 0.37922412157058716,
+      "overlap": 0.00010034255683422089,
+      "spear": 0.003115179017186165
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5144164562225342,
+      "inst": 0.37677058577537537,
+      "overlap": 0.00010016924352385104,
+      "spear": 0.0033910609781742096
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.4651819169521332,
+      "inst": 0.3778519630432129,
+      "overlap": 0.00010035910236183554,
+      "spear": 0.002133069559931755
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.46166983246803284,
+      "inst": 0.3736698031425476,
+      "overlap": 0.0001004472651402466,
+      "spear": 0.0021497774869203568
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5269601345062256,
+      "inst": 0.3783830404281616,
+      "overlap": 0.00010019409819506109,
+      "spear": 0.0036643296480178833
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.47681161761283875,
+      "inst": 0.3720949590206146,
+      "overlap": 0.0001006142920232378,
+      "spear": 0.0025676097720861435
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.49427521228790283,
+      "inst": 0.37537044286727905,
+      "overlap": 0.0001002477656584233,
+      "spear": 0.0029224958270788193
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5552662014961243,
+      "inst": 0.37024104595184326,
+      "overlap": 0.00010075428144773468,
+      "spear": 0.004575250670313835
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6058786511421204,
+      "inst": 0.37525492906570435,
+      "overlap": 9.996155858971179e-05,
+      "spear": 0.005715610459446907
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.6379343271255493,
+      "inst": 0.36992737650871277,
+      "overlap": 0.00010109190770890564,
+      "spear": 0.006649628281593323
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.5096989274024963,
+      "inst": 0.3701763153076172,
+      "overlap": 0.00010021110210800543,
+      "spear": 0.003437960520386696
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.4422510862350464,
+      "inst": 0.37001901865005493,
+      "overlap": 0.00010050880518974736,
+      "spear": 0.0017555467784404755
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.41532424092292786,
+      "inst": 0.3688162863254547,
+      "overlap": 0.00010050791752291843,
+      "spear": 0.0011124443262815475
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.4076351821422577,
+      "inst": 0.3676266670227051,
+      "overlap": 0.00010058607585960999,
+      "spear": 0.0009499210864305496
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.41154220700263977,
+      "inst": 0.3670117259025574,
+      "overlap": 0.00010066664253827184,
+      "spear": 0.001062929630279541
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 12.0,
+      "anchor_hit_rate": 0.10344827586206896,
+      "total": 0.4109002649784088,
+      "inst": 0.36679771542549133,
+      "overlap": 0.00010050881246570498,
+      "spear": 0.001052308827638626
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.4130575954914093,
+      "inst": 0.36609697341918945,
+      "overlap": 0.00010068619303638116,
+      "spear": 0.0011236723512411118
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.39761441946029663,
+      "inst": 0.36400309205055237,
+      "overlap": 0.00010062586807180196,
+      "spear": 0.0007899701595306396
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.40517657995224,
+      "inst": 0.36432206630706787,
+      "overlap": 0.00010076416219817474,
+      "spear": 0.000970982015132904
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.402360737323761,
+      "inst": 0.3642929494380951,
+      "overlap": 0.00010057509643957019,
+      "spear": 0.0009014066308736801
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.40029415488243103,
+      "inst": 0.36254963278770447,
+      "overlap": 0.00010086349357152358,
+      "spear": 0.0008931811898946762
+    },
+    {
+      "anchor_total_valid_parts": 116.0,
+      "anchor_total_hits": 11.0,
+      "anchor_hit_rate": 0.09482758620689655,
+      "total": 0.3876034915447235,
+      "inst": 0.36154139041900635,
+      "overlap": 0.0001007044775178656,
+      "spear": 0.0006012003868818283
+    }
+  ]
+}

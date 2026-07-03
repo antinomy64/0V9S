@@ -1,0 +1,66 @@
+==================== Eval Part Spearman / STR ====================
+input_pth: feature/voc116_obj_part_test15/train_voc116_obj_with_llama3_part.pth
+out_dir: analyze/part_spearman_str
+clip_part_key: part_ann_feats
+llama_part_key: llama_part_ann_feats
+patch_token_key: cropaug_patch_tokens
+crop_box_key: cropaug_box_xyxy
+obj_seg_key: seg_file_name
+derived part mask: replace annotations_detectron2_obj -> annotations_detectron2_part
+min_parts: 3
+
+[build stats]
+num_images: 8431
+num_annotations: 12224
+empty_part_annotations: 1249
+total_local_parts: 101734
+ann_zero_patch_part: 54368
+num_mask_files_loaded: 8417
+patch_grid: 32
+clip_dim: 512
+llama_dim: 4096
+vision_dim: 768
+
+==================== clip_part_ann_feats vs GT patch prototype ====================
+Object               | #Parts | Valid | Spearman | STR T->V | STR V->T | HM T->V | HM V->T
+----------------------------------------------------------------------------------------------------
+aeroplane            | 6      | 6     | 0.300000 | 0.000000 | 0.166667 | 0.000000 | 0.000000
+bicycle              | 5      | 5     | 0.927273 | 0.800000 | 0.600000 | 1.000000 | 1.000000
+bird                 | 9      | 9     | 0.331017 | 0.555556 | 0.666667 | 0.555556 | 0.555556
+bottle               | 2      | 2     |      nan |      nan |      nan |     nan |     nan
+bus                  | 10     | 10    | 0.783663 | 0.600000 | 0.500000 | 1.000000 | 1.000000
+car                  | 10     | 10    | 0.760211 | 0.500000 | 0.300000 | 0.600000 | 0.600000
+cat                  | 9      | 9     | 0.514801 | 0.555556 | 0.555556 | 0.777778 | 0.777778
+cow                  | 9      | 9     | 0.480824 | 0.555556 | 0.555556 | 0.444444 | 0.444444
+dog                  | 10     | 10    | 0.463505 | 0.600000 | 0.600000 | 1.000000 | 1.000000
+horse                | 9      | 9     | 0.536937 | 0.888889 | 0.777778 | 1.000000 | 1.000000
+motorbike            | 4      | 4     | 0.257143 | 0.250000 | 0.250000 | 1.000000 | 1.000000
+person               | 14     | 14    | 0.768849 | 0.857143 | 0.642857 | 1.000000 | 1.000000
+pottedplant          | 2      | 2     |      nan |      nan |      nan |     nan |     nan
+sheep                | 9      | 9     | 0.246589 | 0.222222 | 0.222222 | 0.333333 | 0.333333
+train                | 7      | 7     | 0.805195 | 0.285714 | 0.285714 | 0.285714 | 0.285714
+tvmonitor            | 1      | 1     |      nan |      nan |      nan |     nan |     nan
+----------------------------------------------------------------------------------------------------
+Average over valid objects (13): spearman=0.552000, str_t2v=0.513126, str_v2t=0.471001, str_hm_t2v=0.692063, str_hm_v2t=0.692063
+
+==================== llama_part_ann_feats vs GT patch prototype ====================
+Object               | #Parts | Valid | Spearman | STR T->V | STR V->T | HM T->V | HM V->T
+----------------------------------------------------------------------------------------------------
+aeroplane            | 6      | 6     | 0.610714 | 0.333333 | 0.500000 | 0.500000 | 0.500000
+bicycle              | 5      | 5     | 0.600000 | 0.400000 | 0.200000 | 0.200000 | 0.200000
+bird                 | 9      | 9     | 0.750837 | 0.444444 | 0.666667 | 0.777778 | 0.777778
+bottle               | 2      | 2     |      nan |      nan |      nan |     nan |     nan
+bus                  | 10     | 10    | 0.779578 | 0.500000 | 0.200000 | 0.500000 | 0.500000
+car                  | 10     | 10    | 0.696706 | 0.800000 | 0.700000 | 0.800000 | 0.800000
+cat                  | 9      | 9     | 0.851480 | 0.777778 | 0.777778 | 0.777778 | 0.777778
+cow                  | 9      | 9     | 0.767825 | 0.555556 | 0.666667 | 1.000000 | 1.000000
+dog                  | 10     | 10    | 0.793281 | 0.700000 | 0.600000 | 0.600000 | 0.600000
+horse                | 9      | 9     | 0.826770 | 0.777778 | 0.666667 | 1.000000 | 1.000000
+motorbike            | 4      | 4     | -0.257143 | 0.250000 | 0.250000 | 0.000000 | 0.000000
+person               | 14     | 14    | 0.564947 | 0.428571 | 0.642857 | 0.642857 | 0.642857
+pottedplant          | 2      | 2     |      nan |      nan |      nan |     nan |     nan
+sheep                | 9      | 9     | 0.819048 | 0.666667 | 0.666667 | 1.000000 | 1.000000
+train                | 7      | 7     | 0.544156 | 0.285714 | 0.428571 | 0.285714 | 0.285714
+tvmonitor            | 1      | 1     |      nan |      nan |      nan |     nan |     nan
+----------------------------------------------------------------------------------------------------
+Average over valid objects (13): spearman=0.642169, str_t2v=0.532295, str_v2t=0.535836, str_hm_t2v=0.621856, str_hm_v2t=0.621856
