@@ -6,3 +6,8 @@ output
 outputs
 data
 segmentation_results
+analyze
+analyze_scripts
+exp_scripts
+visualizations
+weights

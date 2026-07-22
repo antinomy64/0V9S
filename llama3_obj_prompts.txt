@@ -1,0 +1,4 @@
+Describe the visible appearance of [cls] for image segmentation. Focus on its overall shape, boundary, color, texture, and distinctive visual components.
+What does [cls] usually look like in an image? Describe only visual cues that help recognize and segment the object.
+List the key visual characteristics of [cls], including its global shape, surface appearance, common colors, and visible structural parts.
+Describe [cls] as an object category using concise visual appearance information, focusing on what can be seen from the image.

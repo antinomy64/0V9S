@@ -72,8 +72,17 @@ def ensure_2d_tensor(x: Any, name: str) -> torch.Tensor:
     if not torch.is_tensor(x):
         x = torch.as_tensor(x)
     x = x.detach().cpu()
+
+    # Accept:
+    #   [D]          -> [1, D]
+    #   [K, D]       -> [K, D]
+    #   [K, P, D]    -> [K, D] by averaging P prompt features
+    # This is needed when LLaMA3 features are injected with inject_mode=all.
     if x.dim() == 1:
         x = x.unsqueeze(0)
+    elif x.dim() == 3:
+        x = x.float().mean(dim=1)
+
     if x.dim() != 2:
         raise ValueError(f"{name} must be 2D after loading, got shape={tuple(x.shape)}")
     return x.float()
